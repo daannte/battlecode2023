@@ -5,6 +5,8 @@
 
 ###### GRADLE ######
 
+gradle.properties
+
 .gradle
 **/build/
 !src/**/build/
