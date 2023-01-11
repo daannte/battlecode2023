@@ -15,7 +15,8 @@ import java.util.Set;
  * is created!
  */
 public strictfp class RobotPlayer {
-
+    int carrierCount = 0;
+    int launcherCount = 0;
     /**
      * We will use this variable to count the number of turns this robot has been alive.
      * You can use static variables like this to save any information you want. Keep in mind that even though
