@@ -72,11 +72,11 @@ public strictfp class RobotPlayer {
                 // use different strategies on different robots. If you wish, you are free to rewrite
                 // this into a different control structure!
                 switch (rc.getType()) {
-                    case HEADQUARTERS:     runHeadquarters(rc);  break;
-                    case CARRIER:      runCarrier(rc);   break;
-                    case LAUNCHER: runLauncher(rc); break;
-                    case BOOSTER: // Examplefuncsplayer doesn't use any of these robot types below.
-                    case DESTABILIZER: // You might want to give them a try!
+                    case HEADQUARTERS:      runHeadquarters(rc);  break;
+                    case CARRIER:           runCarrier(rc);   break;
+                    case LAUNCHER:          runLauncher(rc); break;
+                    case BOOSTER:
+                    case DESTABILIZER:
                     case AMPLIFIER:       break;
                 }
 
@@ -160,39 +160,45 @@ public strictfp class RobotPlayer {
                 }
             }
         }
-        // Try to gather from squares around us.
-        MapLocation me = rc.getLocation();
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
-                if (rc.canCollectResource(wellLocation, -1)) {
-                    if (rng.nextBoolean()) {
+
+        // Occasionally try out the carriers attack
+//        if (rng.nextInt(20) == 1) {
+//            RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
+//            if (enemyRobots.length > 0) {
+//                if (rc.canAttack(enemyRobots[0].location)) {
+//                    rc.attack(enemyRobots[0].location);
+//                }
+//            }
+//        }
+        
+        // If we can see a well, move towards it
+        int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
+        int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
+        if ((amountOfAdamantium + amountOfMana) < 40) {
+
+            // Try to gather from squares around us.
+            MapLocation me = rc.getLocation();
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
+                    if (rc.canCollectResource(wellLocation, -1)) {
                         rc.collectResource(wellLocation, -1);
-                        rc.setIndicatorString("Collecting, now have, AD:" + 
-                            rc.getResourceAmount(ResourceType.ADAMANTIUM) + 
-                            " MN: " + rc.getResourceAmount(ResourceType.MANA) + 
-                            " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
+                        rc.setIndicatorString("Collecting, now have, AD:" +
+                                rc.getResourceAmount(ResourceType.ADAMANTIUM) +
+                                " MN: " + rc.getResourceAmount(ResourceType.MANA) +
+                                " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
                     }
                 }
             }
-        }
-        // Occasionally try out the carriers attack
-        if (rng.nextInt(20) == 1) {
-            RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
-            if (enemyRobots.length > 0) {
-                if (rc.canAttack(enemyRobots[0].location)) {
-                    rc.attack(enemyRobots[0].location);
-                }
+
+            rc.setIndicatorString("Tried to sense a well near me and move to it");
+            WellInfo[] wells = rc.senseNearbyWells();
+            if (wells.length > 0) {
+                WellInfo well_one = wells[0];
+                Direction dir = me.directionTo(well_one.getMapLocation());
+                if (rc.canMove(dir))
+                    rc.move(dir);
             }
-        }
-        
-        // If we can see a well, move towards it
-        WellInfo[] wells = rc.senseNearbyWells();
-        if (wells.length > 1 && rng.nextInt(3) == 1) {
-            WellInfo well_one = wells[1];
-            Direction dir = me.directionTo(well_one.getMapLocation());
-            if (rc.canMove(dir)) 
-                rc.move(dir);
         }
         // Also try to move randomly.
         Direction dir = directions[rng.nextInt(directions.length)];
