@@ -20,6 +20,12 @@ public strictfp class RobotPlayer {
     static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
 
     /**
+     * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
+     * [       0-8       ,                               10-63                              ]
+     *      hq coords
+     */
+
+    /**
      * A random number generator.
      * We will use this RNG to make some random moves. The Random class is provided by the java.util.Random
      * import at the top of this file. Here, we *seed* the RNG with a constant number (6147); this makes sure
