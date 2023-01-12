@@ -20,6 +20,12 @@ public strictfp class RobotPlayer {
     static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
 
     /**
+     * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
+     * [       0-8       ,                               10-63                              ]
+     *      hq coords
+     */
+
+    /**
      * A random number generator.
      * We will use this RNG to make some random moves. The Random class is provided by the java.util.Random
      * import at the top of this file. Here, we *seed* the RNG with a constant number (6147); this makes sure
@@ -51,6 +57,7 @@ public strictfp class RobotPlayer {
 
         // Hello world! Standard output is very useful for debugging.
         // Everything you say here will be directly viewable in your terminal when you run a match!
+
         System.out.println("I'm a " + rc.getType() + " and I just got created! I have health " + rc.getHealth());
 
         // You can also use indicators to save debug notes in replays.
@@ -117,23 +124,47 @@ public strictfp class RobotPlayer {
         }
         // Pick a direction to build in.
         Direction dir = directions[rng.nextInt(directions.length)];
-        MapLocation newLoc = rc.getLocation().add(dir);
+        // MapLocation newLoc = rc.getLocation().add(dir);
 //        if (rc.canBuildAnchor(Anchor.STANDARD)) {
 //            // If we can build an anchor do it!
 //            rc.buildAnchor(Anchor.STANDARD);
 //            rc.setIndicatorString("Building anchor! " + rc.getAnchor());
 //        }
-        if (rng.nextBoolean()) {
-            // Let's try to build a carrier.
-            rc.setIndicatorString("Trying to build a carrier");
-            if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
-                rc.buildRobot(RobotType.CARRIER, newLoc);
-            }
-        } else {
-            // Let's try to build a launcher.
-            rc.setIndicatorString("Trying to build a launcher");
-            if (rc.canBuildRobot(RobotType.LAUNCHER, newLoc)) {
-                rc.buildRobot(RobotType.LAUNCHER, newLoc);
+//        if (rng.nextBoolean()) {
+//            // Let's try to build a carrier.
+//            rc.setIndicatorString("Trying to build a carrier");
+//            if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
+//                rc.buildRobot(RobotType.CARRIER, newLoc);
+//            }
+//        } else {
+//            // Let's try to build a launcher.
+//            rc.setIndicatorString("Trying to build a launcher");
+//            if (rc.canBuildRobot(RobotType.LAUNCHER, newLoc)) {
+//                rc.buildRobot(RobotType.LAUNCHER, newLoc);
+//            }
+//        }
+        // Pick a direction to build in.
+        for (Direction direction : directions) {
+            MapLocation spawnLocation = rc.getLocation().add(direction);
+            if (turnCount <= 3) {
+                if (rc.canBuildRobot(RobotType.LAUNCHER, spawnLocation)){
+                    rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
+                    break;
+                }
+            } else if (turnCount <= 7) {
+                if (rc.canBuildRobot(RobotType.CARRIER, spawnLocation)) {
+                    rc.buildRobot(RobotType.CARRIER, spawnLocation);
+                    break;
+                }
+            } else {
+                if (rc.canBuildRobot(RobotType.LAUNCHER, spawnLocation)) {
+                    rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
+                    break;
+                }
+                if (rc.canBuildRobot(RobotType.CARRIER, spawnLocation)) {
+                    rc.buildRobot(RobotType.CARRIER, spawnLocation);
+                    break;
+                }
             }
         }
     }
@@ -268,7 +299,6 @@ public strictfp class RobotPlayer {
         if (rc.canMove(dir) && !dontMove) {
             rc.move(dir);
             //rc.setIndicatorString("Moving " + dir);
-            dontMove = false;
         }
     }
 
