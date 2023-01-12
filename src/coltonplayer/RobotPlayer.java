@@ -111,8 +111,15 @@ public strictfp class RobotPlayer {
      */
     static void runHeadquarters(RobotController rc) throws GameActionException {
         if (turnCount == 1) {
-            rc.writeSharedArray(2, rc.getLocation().x);
-            rc.writeSharedArray(3, rc.getLocation().y);
+            //index 0 is indicator: 0 means no coords are written to index 1,2 yet, 1 means coords are written, so write yours to 3,4
+            if (rc.readSharedArray(0) == 0) {
+                rc.writeSharedArray(0, 1);
+                rc.writeSharedArray(1, rc.getLocation().x);
+                rc.writeSharedArray(2, rc.getLocation().y);
+            } else {
+                rc.writeSharedArray(3, rc.getLocation().x);
+                rc.writeSharedArray(4, rc.getLocation().y);
+            }
         }
 
         // Pick a direction to build in.
@@ -148,10 +155,10 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
-        if (turnCount == 1) {
-            rc.writeSharedArray(0, rc.getLocation().x);
-            rc.writeSharedArray(1, rc.getLocation().y);
-        }
+//        if (turnCount == 1) {
+//            rc.writeSharedArray(0, rc.getLocation().x);
+//            rc.writeSharedArray(1, rc.getLocation().y);
+//        }
         if (rc.getAnchor() != null) {
             // If I have an anchor singularly focus on getting it to the first island I see
             int[] islands = rc.senseNearbyIslands();
@@ -224,7 +231,20 @@ public strictfp class RobotPlayer {
         else {
             // we have max we can carry, go back to the hq and deposit!
             // System.out.println(headBackToHq);
-            MapLocation hqPos = new MapLocation(rc.readSharedArray(2), rc.readSharedArray(3));
+            MapLocation firstHqPos = new MapLocation(rc.readSharedArray(1), rc.readSharedArray(2));
+            MapLocation secondHqPos = new MapLocation(rc.readSharedArray(3), rc.readSharedArray(4));
+            MapLocation hqPos = null;
+
+            System.out.println("\n" + me.distanceSquaredTo(firstHqPos) + " | " + me.distanceSquaredTo(secondHqPos));
+
+            if (me.distanceSquaredTo(firstHqPos) > me.distanceSquaredTo(secondHqPos)) {
+                hqPos = secondHqPos;
+                System.out.println("going to first hq");
+            } else if (me.distanceSquaredTo(firstHqPos) <= me.distanceSquaredTo(secondHqPos)) {
+                hqPos = firstHqPos;
+                System.out.println("going to second hq");
+            }
+
             Direction dirToHq = me.directionTo(hqPos);
             if (rc.getLocation().isAdjacentTo(hqPos)) {
                 for (ResourceType resource: ResourceType.values()) {
