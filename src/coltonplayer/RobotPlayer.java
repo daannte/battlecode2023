@@ -2,10 +2,7 @@ package coltonplayer;
 
 import battlecode.common.*;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
@@ -20,7 +17,7 @@ public strictfp class RobotPlayer {
      * these variables are static, in Battlecode they aren't actually shared between your robots.
      */
     static int turnCount = 0;
-    // public static MapLocation headBackToHq;
+    static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
 
     /**
      * A random number generator.
@@ -110,36 +107,27 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runHeadquarters(RobotController rc) throws GameActionException {
+        // takes up 3-9 spots in the shared array (depending on how many hq's)
         if (turnCount == 1) {
-            //index 0 is indicator: 0 means no coords are written to index 1,2 yet, 1 means coords are written, so write yours to 3,4
-            if (rc.readSharedArray(0) == 0) {
-                rc.writeSharedArray(0, 1);
-                rc.writeSharedArray(1, rc.getLocation().x);
-                rc.writeSharedArray(2, rc.getLocation().y);
-            } else {
-                rc.writeSharedArray(3, rc.getLocation().x);
-                rc.writeSharedArray(4, rc.getLocation().y);
-            }
+            MapLocation me = rc.getLocation();
+            int indicator = rc.readSharedArray(0);
+            rc.writeSharedArray(indicator+1, me.x);
+            rc.writeSharedArray(indicator+2, me.y);
+            rc.writeSharedArray(0, indicator+2);
         }
-
         // Pick a direction to build in.
         Direction dir = directions[rng.nextInt(directions.length)];
         MapLocation newLoc = rc.getLocation().add(dir);
-        if (rc.canBuildAnchor(Anchor.STANDARD)) {
-            // If we can build an anchor do it!
-            rc.buildAnchor(Anchor.STANDARD);
-            rc.setIndicatorString("Building anchor! " + rc.getAnchor());
-        }
+//        if (rc.canBuildAnchor(Anchor.STANDARD)) {
+//            // If we can build an anchor do it!
+//            rc.buildAnchor(Anchor.STANDARD);
+//            rc.setIndicatorString("Building anchor! " + rc.getAnchor());
+//        }
         if (rng.nextBoolean()) {
             // Let's try to build a carrier.
             rc.setIndicatorString("Trying to build a carrier");
             if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
                 rc.buildRobot(RobotType.CARRIER, newLoc);
-                // headBackToHq = newLoc;
-                // System.out.println("\n\nNew headBackToHq: " + headBackToHq + "\n\n");
-                // if (rc.getRobotCount() == 3)
-                // rc.writeSharedArray(0, newLoc.x);
-                // rc.writeSharedArray(1, newLoc.y);
             }
         } else {
             // Let's try to build a launcher.
@@ -155,10 +143,14 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
-//        if (turnCount == 1) {
-//            rc.writeSharedArray(0, rc.getLocation().x);
-//            rc.writeSharedArray(1, rc.getLocation().y);
-//        }
+        if (turnCount == 1) {
+            int amountOfHqs = rc.readSharedArray(0) / 2;
+            for (int i = 0; i < amountOfHqs; i++) {
+                int ind = i*2;
+                MapLocation Hq = new MapLocation(rc.readSharedArray(ind+1), rc.readSharedArray(ind+2));
+                coordsOfHqs.add(Hq);
+            }
+        }
         if (rc.getAnchor() != null) {
             // If I have an anchor singularly focus on getting it to the first island I see
             int[] islands = rc.senseNearbyIslands();
@@ -198,51 +190,60 @@ public strictfp class RobotPlayer {
         int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
 
         MapLocation me = rc.getLocation();
-
+        boolean dontMove = false;
         if ((amountOfAdamantium + amountOfMana) < 40) {
-
-            // Try to gather from squares around us.
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dy = -1; dy <= 1; dy++) {
-                    MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
-                    if (rc.canCollectResource(wellLocation, -1)) {
-                        rc.collectResource(wellLocation, -1);
-                        rc.setIndicatorString("Collecting, now have, AD:" +
-                                rc.getResourceAmount(ResourceType.ADAMANTIUM) +
-                                " MN: " + rc.getResourceAmount(ResourceType.MANA) +
-                                " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
-                    }
-                }
-            }
-
+            // needa find a well
             // rc.setIndicatorString("Tried to sense a well near me and move to it");
             WellInfo[] wells = rc.senseNearbyWells();
             if (wells.length > 0) {
-                WellInfo well_one = wells[0];
-                Direction dir = me.directionTo(well_one.getMapLocation());
-                if (rc.canMove(dir)) {
-                    rc.move(dir);
-                    rc.setIndicatorString("Moving " + dir);
+                MapLocation closestWellLoc = wells[0].getMapLocation();
+                for (WellInfo well : wells) {
+                    if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWellLoc)) {
+                        closestWellLoc = well.getMapLocation();
+                    }
                 }
-            } else {
-
+                if (me.isAdjacentTo(closestWellLoc)) {
+                    // if we are close enough to collect, we don't need to move closer, so don't move, and just collect
+                    dontMove = true;
+                    // Try to gather from squares around us.
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dy = -1; dy <= 1; dy++) {
+                            MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
+                            if (rc.canCollectResource(wellLocation, -1)) {
+                                rc.collectResource(wellLocation, -1);
+                                rc.setIndicatorString("Collecting, now have, AD:" +
+                                        rc.getResourceAmount(ResourceType.ADAMANTIUM) +
+                                        " MN: " + rc.getResourceAmount(ResourceType.MANA) +
+                                        " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
+                            }
+                        }
+                    }
+                } else {
+                    // if we aren't adjacent to the well, we can't collect, so move to it
+                    Direction dir = me.directionTo(closestWellLoc);
+                    if (rc.canMove(dir)) {
+                        rc.move(dir);
+                        rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir);
+                    }
+                    if (amountOfAdamantium + amountOfMana == 0) {
+                        //empty dudes can move a second time hehe
+                        Direction dir2 = me.directionTo(closestWellLoc);
+                        if (rc.canMove(dir2)) {
+                            rc.move(dir2);
+                            rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir2);
+                        }
+                    }
+                }
             }
         }
         else {
-            // we have max we can carry, go back to the hq and deposit!
-            // System.out.println(headBackToHq);
-            MapLocation firstHqPos = new MapLocation(rc.readSharedArray(1), rc.readSharedArray(2));
-            MapLocation secondHqPos = new MapLocation(rc.readSharedArray(3), rc.readSharedArray(4));
-            MapLocation hqPos = null;
-
-            System.out.println("\n" + me.distanceSquaredTo(firstHqPos) + " | " + me.distanceSquaredTo(secondHqPos));
-
-            if (me.distanceSquaredTo(firstHqPos) > me.distanceSquaredTo(secondHqPos)) {
-                hqPos = secondHqPos;
-                System.out.println("going to first hq");
-            } else if (me.distanceSquaredTo(firstHqPos) <= me.distanceSquaredTo(secondHqPos)) {
-                hqPos = firstHqPos;
-                System.out.println("going to second hq");
+            // we have max we can carry, go back to the (closest) hq and deposit!
+            //System.out.println(coordsOfHqs);
+            MapLocation hqPos = coordsOfHqs.get(0);
+            for (MapLocation hqCoords : coordsOfHqs) {
+                if (me.distanceSquaredTo(hqCoords) < me.distanceSquaredTo(hqPos)) {
+                    hqPos = hqCoords;
+                }
             }
 
             Direction dirToHq = me.directionTo(hqPos);
@@ -262,12 +263,12 @@ public strictfp class RobotPlayer {
             }
         }
 
-
-        // Also try to move randomly.
+        // move randomly if we want to move but couldn't find a valid spot
         Direction dir = directions[rng.nextInt(directions.length)];
-        if (rc.canMove(dir)) {
+        if (rc.canMove(dir) && !dontMove) {
             rc.move(dir);
             //rc.setIndicatorString("Moving " + dir);
+            dontMove = false;
         }
     }
 
@@ -280,10 +281,9 @@ public strictfp class RobotPlayer {
         int radius = rc.getType().actionRadiusSquared;
         Team opponent = rc.getTeam().opponent();
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
-        if (enemies.length >= 0) {
+        if (enemies.length > 0) {
             // MapLocation toAttack = enemies[0].location;
-            MapLocation toAttack = rc.getLocation().add(Direction.EAST);
-
+            MapLocation toAttack = enemies[0].location;
             if (rc.canAttack(toAttack)) {
                 rc.setIndicatorString("Attacking");        
                 rc.attack(toAttack);
