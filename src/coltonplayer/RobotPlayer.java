@@ -2,10 +2,7 @@ package coltonplayer;
 
 import battlecode.common.*;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
@@ -20,7 +17,7 @@ public strictfp class RobotPlayer {
      * these variables are static, in Battlecode they aren't actually shared between your robots.
      */
     static int turnCount = 0;
-    // public static MapLocation headBackToHq;
+    static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
 
     /**
      * A random number generator.
@@ -110,18 +107,14 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runHeadquarters(RobotController rc) throws GameActionException {
+        // takes up 3-9 spots in the shared array (depending on how many hq's)
         if (turnCount == 1) {
-            //index 0 is indicator: 0 means no coords are written to index 1,2 yet, 1 means coords are written, so write yours to 3,4
-            if (rc.readSharedArray(0) == 0) {
-                rc.writeSharedArray(0, 1);
-                rc.writeSharedArray(1, rc.getLocation().x);
-                rc.writeSharedArray(2, rc.getLocation().y);
-            } else {
-                rc.writeSharedArray(3, rc.getLocation().x);
-                rc.writeSharedArray(4, rc.getLocation().y);
-            }
+            MapLocation me = rc.getLocation();
+            int indicator = rc.readSharedArray(0);
+            rc.writeSharedArray(indicator+1, me.x);
+            rc.writeSharedArray(indicator+2, me.y);
+            rc.writeSharedArray(0, indicator+2);
         }
-
         // Pick a direction to build in.
         Direction dir = directions[rng.nextInt(directions.length)];
         MapLocation newLoc = rc.getLocation().add(dir);
@@ -155,10 +148,14 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
-//        if (turnCount == 1) {
-//            rc.writeSharedArray(0, rc.getLocation().x);
-//            rc.writeSharedArray(1, rc.getLocation().y);
-//        }
+        if (turnCount == 1) {
+            int amountOfHqs = rc.readSharedArray(0) / 2;
+            for (int i = 0; i < amountOfHqs; i++) {
+                int ind = i*2;
+                MapLocation Hq = new MapLocation(rc.readSharedArray(ind+1), rc.readSharedArray(ind+2));
+                coordsOfHqs.add(Hq);
+            }
+        }
         if (rc.getAnchor() != null) {
             // If I have an anchor singularly focus on getting it to the first island I see
             int[] islands = rc.senseNearbyIslands();
@@ -229,20 +226,28 @@ public strictfp class RobotPlayer {
             }
         }
         else {
-            // we have max we can carry, go back to the hq and deposit!
+            // we have max we can carry, go back to the (closest) hq and deposit!
             // System.out.println(headBackToHq);
-            MapLocation firstHqPos = new MapLocation(rc.readSharedArray(1), rc.readSharedArray(2));
-            MapLocation secondHqPos = new MapLocation(rc.readSharedArray(3), rc.readSharedArray(4));
-            MapLocation hqPos = null;
+            MapLocation HqPos = new MapLocation(rc.readSharedArray(1), rc.readSharedArray(2));
+//            MapLocation secondHqPos = new MapLocation(rc.readSharedArray(3), rc.readSharedArray(4));
+//            MapLocation hqPos = null;
+//
+//            System.out.println("\n" + me.distanceSquaredTo(firstHqPos) + " | " + me.distanceSquaredTo(secondHqPos));
+//
+//            if (me.distanceSquaredTo(firstHqPos) > me.distanceSquaredTo(secondHqPos)) {
+//                hqPos = secondHqPos;
+//                System.out.println("going to first hq");
+//            } else if (me.distanceSquaredTo(firstHqPos) <= me.distanceSquaredTo(secondHqPos)) {
+//                hqPos = firstHqPos;
+//                System.out.println("going to second hq");
+//            }
+            System.out.println(coordsOfHqs);
+            MapLocation hqPos = coordsOfHqs.get(0);
 
-            System.out.println("\n" + me.distanceSquaredTo(firstHqPos) + " | " + me.distanceSquaredTo(secondHqPos));
-
-            if (me.distanceSquaredTo(firstHqPos) > me.distanceSquaredTo(secondHqPos)) {
-                hqPos = secondHqPos;
-                System.out.println("going to first hq");
-            } else if (me.distanceSquaredTo(firstHqPos) <= me.distanceSquaredTo(secondHqPos)) {
-                hqPos = firstHqPos;
-                System.out.println("going to second hq");
+            for (MapLocation hqCoords : coordsOfHqs) {
+                if (me.distanceSquaredTo(hqCoords) < me.distanceSquaredTo(hqPos)) {
+                    hqPos = hqCoords;
+                }
             }
 
             Direction dirToHq = me.directionTo(hqPos);
