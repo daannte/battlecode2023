@@ -146,11 +146,25 @@ public strictfp class RobotPlayer {
         // Pick a direction to build in.
         for (Direction direction : directions) {
             MapLocation spawnLocation = rc.getLocation().add(direction);
-            if (rc.canBuildRobot(RobotType.CARRIER, spawnLocation)) {
-                rc.buildRobot(RobotType.CARRIER, spawnLocation);
-            }
-            if(rc.canBuildRobot(RobotType.LAUNCHER, spawnLocation)){
-                rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
+            if (turnCount <= 3) {
+                if (rc.canBuildRobot(RobotType.LAUNCHER, spawnLocation)){
+                    rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
+                    break;
+                }
+            } else if (turnCount <= 7) {
+                if (rc.canBuildRobot(RobotType.CARRIER, spawnLocation)) {
+                    rc.buildRobot(RobotType.CARRIER, spawnLocation);
+                    break;
+                }
+            } else {
+                if (rc.canBuildRobot(RobotType.LAUNCHER, spawnLocation)) {
+                    rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
+                    break;
+                }
+                if (rc.canBuildRobot(RobotType.CARRIER, spawnLocation)) {
+                    rc.buildRobot(RobotType.CARRIER, spawnLocation);
+                    break;
+                }
             }
         }
     }
