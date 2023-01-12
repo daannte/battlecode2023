@@ -51,6 +51,7 @@ public strictfp class RobotPlayer {
 
         // Hello world! Standard output is very useful for debugging.
         // Everything you say here will be directly viewable in your terminal when you run a match!
+
         System.out.println("I'm a " + rc.getType() + " and I just got created! I have health " + rc.getHealth());
 
         // You can also use indicators to save debug notes in replays.
@@ -268,7 +269,6 @@ public strictfp class RobotPlayer {
         if (rc.canMove(dir) && !dontMove) {
             rc.move(dir);
             //rc.setIndicatorString("Moving " + dir);
-            dontMove = false;
         }
     }
 
