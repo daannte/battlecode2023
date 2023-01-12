@@ -115,54 +115,41 @@ public strictfp class RobotPlayer {
      */
     static void runHeadquarters(RobotController rc) throws GameActionException {
         // takes up 3-9 spots in the shared array (depending on how many hq's)
+        MapLocation me = rc.getLocation();
         if (turnCount == 1) {
-            MapLocation me = rc.getLocation();
             int indicator = rc.readSharedArray(0);
             rc.writeSharedArray(indicator+1, me.x);
             rc.writeSharedArray(indicator+2, me.y);
             rc.writeSharedArray(0, indicator+2);
         }
-        // Pick a direction to build in.
-        Direction dir = directions[rng.nextInt(directions.length)];
-        // MapLocation newLoc = rc.getLocation().add(dir);
-//        if (rc.canBuildAnchor(Anchor.STANDARD)) {
-//            // If we can build an anchor do it!
-//            rc.buildAnchor(Anchor.STANDARD);
-//            rc.setIndicatorString("Building anchor! " + rc.getAnchor());
-//        }
-//        if (rng.nextBoolean()) {
-//            // Let's try to build a carrier.
-//            rc.setIndicatorString("Trying to build a carrier");
-//            if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
-//                rc.buildRobot(RobotType.CARRIER, newLoc);
-//            }
-//        } else {
-//            // Let's try to build a launcher.
-//            rc.setIndicatorString("Trying to build a launcher");
-//            if (rc.canBuildRobot(RobotType.LAUNCHER, newLoc)) {
-//                rc.buildRobot(RobotType.LAUNCHER, newLoc);
-//            }
-//        }
+
         // Pick a direction to build in.
         for (Direction direction : directions) {
-            MapLocation spawnLocation = rc.getLocation().add(direction);
+            MapLocation attackerSpawnLocation = rc.getLocation().add(direction);
+            MapLocation carrierSpawnLocation = attackerSpawnLocation;
+
+            WellInfo[] wells = rc.senseNearbyWells(-1);
+            for (WellInfo well : wells) {
+                Direction closestToWell = me.directionTo(well.getMapLocation());
+                carrierSpawnLocation = me.add(closestToWell);
+            }
             if (turnCount <= 3) {
-                if (rc.canBuildRobot(RobotType.LAUNCHER, spawnLocation)){
-                    rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
+                if (rc.canBuildRobot(RobotType.LAUNCHER, attackerSpawnLocation)){
+                    rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
                     break;
                 }
             } else if (turnCount <= 7) {
-                if (rc.canBuildRobot(RobotType.CARRIER, spawnLocation)) {
-                    rc.buildRobot(RobotType.CARRIER, spawnLocation);
+                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocation)) {
+                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocation);
                     break;
                 }
             } else {
-                if (rc.canBuildRobot(RobotType.LAUNCHER, spawnLocation)) {
-                    rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
+                if (rc.canBuildRobot(RobotType.LAUNCHER, attackerSpawnLocation)) {
+                    rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
                     break;
                 }
-                if (rc.canBuildRobot(RobotType.CARRIER, spawnLocation)) {
-                    rc.buildRobot(RobotType.CARRIER, spawnLocation);
+                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocation)) {
+                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocation);
                     break;
                 }
             }
