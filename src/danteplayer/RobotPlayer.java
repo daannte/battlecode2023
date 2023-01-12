@@ -120,12 +120,7 @@ public strictfp class RobotPlayer {
                 rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
             }
         }
-//        if (rc.canBuildAnchor(Anchor.STANDARD)) {
-//            // If we can build an anchor do it!
-//            rc.buildAnchor(Anchor.STANDARD);
-//            rc.setIndicatorString("Building anchor! " + rc.getAnchor());
-//        }
-        }
+    }
 
     /**
      * Run a single turn for a Carrier.
@@ -200,16 +195,6 @@ public strictfp class RobotPlayer {
                 rc.move(dirToHq);
             }
         }
-
-//        // Occasionally try out the carriers attack
-//        if (rng.nextInt(20) == 1) {
-//            RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
-//            if (enemyRobots.length > 0) {
-//                if (rc.canAttack(enemyRobots[0].location)) {
-//                    rc.attack(enemyRobots[0].location);
-//                }
-//            }
-//        }
 
         // Also try to move randomly.
         Direction dir = directions[rng.nextInt(directions.length)];
