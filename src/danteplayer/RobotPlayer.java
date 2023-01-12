@@ -127,6 +127,7 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
+        // Get the location of the HQ
         if (turnCount == 1) {
             RobotInfo[] robots = rc.senseNearbyRobots();
             for (RobotInfo robot : robots) {
@@ -175,6 +176,7 @@ public strictfp class RobotPlayer {
                     }
                 }
             }
+            // Try and find nearby wells
             WellInfo[] wells = rc.senseNearbyWells();
             if (wells.length > 0) {
                 WellInfo well_one = wells[0];
@@ -183,6 +185,7 @@ public strictfp class RobotPlayer {
                     rc.move(dirToWell);
             }
         } else {
+            // Take the resources back to HQ
             Direction dirToHq = me.directionTo(headquarters);
             if (rc.getLocation().isAdjacentTo(headquarters)) {
                 for (ResourceType resource : ResourceType.values()) {
