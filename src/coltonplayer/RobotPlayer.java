@@ -128,11 +128,6 @@ public strictfp class RobotPlayer {
             rc.setIndicatorString("Trying to build a carrier");
             if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
                 rc.buildRobot(RobotType.CARRIER, newLoc);
-                // headBackToHq = newLoc;
-                // System.out.println("\n\nNew headBackToHq: " + headBackToHq + "\n\n");
-                // if (rc.getRobotCount() == 3)
-                // rc.writeSharedArray(0, newLoc.x);
-                // rc.writeSharedArray(1, newLoc.y);
             }
         } else {
             // Let's try to build a launcher.
@@ -195,55 +190,56 @@ public strictfp class RobotPlayer {
         int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
 
         MapLocation me = rc.getLocation();
-
+        boolean dontMove = false;
         if ((amountOfAdamantium + amountOfMana) < 40) {
-
-            // Try to gather from squares around us.
-            for (int dx = -1; dx <= 1; dx++) {
-                for (int dy = -1; dy <= 1; dy++) {
-                    MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
-                    if (rc.canCollectResource(wellLocation, -1)) {
-                        rc.collectResource(wellLocation, -1);
-                        rc.setIndicatorString("Collecting, now have, AD:" +
-                                rc.getResourceAmount(ResourceType.ADAMANTIUM) +
-                                " MN: " + rc.getResourceAmount(ResourceType.MANA) +
-                                " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
-                    }
-                }
-            }
-
+            // needa find a well
             // rc.setIndicatorString("Tried to sense a well near me and move to it");
             WellInfo[] wells = rc.senseNearbyWells();
             if (wells.length > 0) {
-                WellInfo well_one = wells[0];
-                Direction dir = me.directionTo(well_one.getMapLocation());
-                if (rc.canMove(dir)) {
-                    rc.move(dir);
-                    rc.setIndicatorString("Moving " + dir);
+                MapLocation closestWellLoc = wells[0].getMapLocation();
+                for (WellInfo well : wells) {
+                    if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWellLoc)) {
+                        closestWellLoc = well.getMapLocation();
+                    }
                 }
-            } else {
-
+                if (me.isAdjacentTo(closestWellLoc)) {
+                    // if we are close enough to collect, we don't need to move closer, so don't move, and just collect
+                    dontMove = true;
+                    // Try to gather from squares around us.
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dy = -1; dy <= 1; dy++) {
+                            MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
+                            if (rc.canCollectResource(wellLocation, -1)) {
+                                rc.collectResource(wellLocation, -1);
+                                rc.setIndicatorString("Collecting, now have, AD:" +
+                                        rc.getResourceAmount(ResourceType.ADAMANTIUM) +
+                                        " MN: " + rc.getResourceAmount(ResourceType.MANA) +
+                                        " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
+                            }
+                        }
+                    }
+                } else {
+                    // if we aren't adjacent to the well, we can't collect, so move to it
+                    Direction dir = me.directionTo(closestWellLoc);
+                    if (rc.canMove(dir)) {
+                        rc.move(dir);
+                        rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir);
+                    }
+                    if (amountOfAdamantium + amountOfMana == 0) {
+                        //empty dudes can move a second time hehe
+                        Direction dir2 = me.directionTo(closestWellLoc);
+                        if (rc.canMove(dir2)) {
+                            rc.move(dir2);
+                            rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir2);
+                        }
+                    }
+                }
             }
         }
         else {
             // we have max we can carry, go back to the (closest) hq and deposit!
-            // System.out.println(headBackToHq);
-            MapLocation HqPos = new MapLocation(rc.readSharedArray(1), rc.readSharedArray(2));
-//            MapLocation secondHqPos = new MapLocation(rc.readSharedArray(3), rc.readSharedArray(4));
-//            MapLocation hqPos = null;
-//
-//            System.out.println("\n" + me.distanceSquaredTo(firstHqPos) + " | " + me.distanceSquaredTo(secondHqPos));
-//
-//            if (me.distanceSquaredTo(firstHqPos) > me.distanceSquaredTo(secondHqPos)) {
-//                hqPos = secondHqPos;
-//                System.out.println("going to first hq");
-//            } else if (me.distanceSquaredTo(firstHqPos) <= me.distanceSquaredTo(secondHqPos)) {
-//                hqPos = firstHqPos;
-//                System.out.println("going to second hq");
-//            }
-            System.out.println(coordsOfHqs);
+            //System.out.println(coordsOfHqs);
             MapLocation hqPos = coordsOfHqs.get(0);
-
             for (MapLocation hqCoords : coordsOfHqs) {
                 if (me.distanceSquaredTo(hqCoords) < me.distanceSquaredTo(hqPos)) {
                     hqPos = hqCoords;
@@ -267,12 +263,12 @@ public strictfp class RobotPlayer {
             }
         }
 
-
-        // Also try to move randomly.
+        // move randomly if we want to move but couldn't find a valid spot
         Direction dir = directions[rng.nextInt(directions.length)];
-        if (rc.canMove(dir)) {
+        if (rc.canMove(dir) && !dontMove) {
             rc.move(dir);
             //rc.setIndicatorString("Moving " + dir);
+            dontMove = false;
         }
     }
 
