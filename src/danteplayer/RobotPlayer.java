@@ -116,6 +116,9 @@ public strictfp class RobotPlayer {
             if (rc.canBuildRobot(RobotType.CARRIER, spawnLocation)) {
                 rc.buildRobot(RobotType.CARRIER, spawnLocation);
             }
+            if(rc.canBuildRobot(RobotType.LAUNCHER, spawnLocation)){
+                rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
+            }
         }
 //        if (rc.canBuildAnchor(Anchor.STANDARD)) {
 //            // If we can build an anchor do it!
