@@ -306,6 +306,30 @@ public strictfp class RobotPlayer {
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
         RobotInfo[] allies = rc.senseNearbyRobots(radius, player);
         Direction dir = directions[rng.nextInt(directions.length)];
+        if (rc.getTeam() == Team.B) {
+            dir = Direction.NORTH;
+            if (!rc.canMove(dir)){
+                dir = Direction.EAST;
+                if (!rc.canMove(dir)){
+                    dir = Direction.WEST;
+                    if (!rc.canMove(dir)){
+                        dir = Direction.SOUTH;
+                    }
+                }
+            }
+        }
+        else {
+            dir = Direction.SOUTH;
+            if (!rc.canMove(dir)){
+                dir = Direction.EAST;
+                if (!rc.canMove(dir)){
+                    dir = Direction.WEST;
+                    if (!rc.canMove(dir)){
+                        dir = Direction.SOUTH;
+                    }
+                }
+            }
+        }
         MapLocation myLoc = rc.getLocation();
         if (enemies.length > 0) {
             // MapLocation toAttack = enemies[0].location;
