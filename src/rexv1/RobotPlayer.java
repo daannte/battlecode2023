@@ -1,4 +1,4 @@
-package coltonplayer;
+package rexv1;
 
 import battlecode.common.*;
 
@@ -20,12 +20,6 @@ public strictfp class RobotPlayer {
     static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
 
     /**
-     * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
-     * [       0-8       ,                               10-63                              ]
-     *      hq coords
-     */
-
-    /**
      * A random number generator.
      * We will use this RNG to make some random moves. The Random class is provided by the java.util.Random
      * import at the top of this file. Here, we *seed* the RNG with a constant number (6147); this makes sure
@@ -35,14 +29,14 @@ public strictfp class RobotPlayer {
 
     /** Array containing all the possible movement directions. */
     static final Direction[] directions = {
-        Direction.NORTH,
-        Direction.NORTHEAST,
-        Direction.EAST,
-        Direction.SOUTHEAST,
-        Direction.SOUTH,
-        Direction.SOUTHWEST,
-        Direction.WEST,
-        Direction.NORTHWEST,
+            Direction.NORTH,
+            Direction.NORTHEAST,
+            Direction.EAST,
+            Direction.SOUTHEAST,
+            Direction.SOUTH,
+            Direction.SOUTHWEST,
+            Direction.WEST,
+            Direction.NORTHWEST,
     };
 
     /**
@@ -57,7 +51,6 @@ public strictfp class RobotPlayer {
 
         // Hello world! Standard output is very useful for debugging.
         // Everything you say here will be directly viewable in your terminal when you run a match!
-
         System.out.println("I'm a " + rc.getType() + " and I just got created! I have health " + rc.getHealth());
 
         // You can also use indicators to save debug notes in replays.
@@ -115,51 +108,32 @@ public strictfp class RobotPlayer {
      */
     static void runHeadquarters(RobotController rc) throws GameActionException {
         // takes up 3-9 spots in the shared array (depending on how many hq's)
-        MapLocation me = rc.getLocation();
         if (turnCount == 1) {
+            MapLocation me = rc.getLocation();
             int indicator = rc.readSharedArray(0);
             rc.writeSharedArray(indicator+1, me.x);
             rc.writeSharedArray(indicator+2, me.y);
             rc.writeSharedArray(0, indicator+2);
         }
-
         // Pick a direction to build in.
-        for (Direction direction : directions) {
-            MapLocation attackerSpawnLocation = rc.getLocation().add(direction).add(direction);
-            MapLocation carrierSpawnLocationClose = attackerSpawnLocation;
-            MapLocation carrierSpawnLocationFar = attackerSpawnLocation;
-
-            WellInfo[] wells = rc.senseNearbyWells(-1);
-            for (WellInfo well : wells) {
-                Direction closestToWell = me.directionTo(well.getMapLocation());
-                carrierSpawnLocationClose = me.add(closestToWell);
-                carrierSpawnLocationFar = carrierSpawnLocationClose.add(closestToWell);
+        Direction dir = directions[rng.nextInt(directions.length)];
+        MapLocation newLoc = rc.getLocation().add(dir);
+//        if (rc.canBuildAnchor(Anchor.STANDARD)) {
+//            // If we can build an anchor do it!
+//            rc.buildAnchor(Anchor.STANDARD);
+//            rc.setIndicatorString("Building anchor! " + rc.getAnchor());
+//        }
+        if (rng.nextBoolean()) {
+            // Let's try to build a carrier.
+            rc.setIndicatorString("Trying to build a carrier");
+            if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
+                rc.buildRobot(RobotType.CARRIER, newLoc);
             }
-            if (turnCount <= 3) {
-                if (rc.canBuildRobot(RobotType.LAUNCHER, attackerSpawnLocation)){
-                    rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
-                    break;
-                }
-            } else if (turnCount <= 7) {
-                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationFar)) {
-                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationFar);
-                    break;
-                } else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
-                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationClose);
-                    break;
-                }
-            } else {
-                if (rc.canBuildRobot(RobotType.LAUNCHER, attackerSpawnLocation)) {
-                    rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
-                    break;
-                }
-                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationFar)) {
-                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationFar);
-                    break;
-                } else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
-                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationClose);
-                    break;
-                }
+        } else {
+            // Let's try to build a launcher.
+            rc.setIndicatorString("Trying to build a launcher");
+            if (rc.canBuildRobot(RobotType.LAUNCHER, newLoc)) {
+                rc.buildRobot(RobotType.LAUNCHER, newLoc);
             }
         }
     }
@@ -210,7 +184,7 @@ public strictfp class RobotPlayer {
 //                }
 //            }
 //        }
-        
+
         // If we can see a well, move towards it
         int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
@@ -294,6 +268,7 @@ public strictfp class RobotPlayer {
         if (rc.canMove(dir) && !dontMove) {
             rc.move(dir);
             //rc.setIndicatorString("Moving " + dir);
+            dontMove = false;
         }
     }
 
@@ -310,7 +285,7 @@ public strictfp class RobotPlayer {
             // MapLocation toAttack = enemies[0].location;
             MapLocation toAttack = enemies[0].location;
             if (rc.canAttack(toAttack)) {
-                rc.setIndicatorString("Attacking");        
+                rc.setIndicatorString("Attacking");
                 rc.attack(toAttack);
             }
         }
