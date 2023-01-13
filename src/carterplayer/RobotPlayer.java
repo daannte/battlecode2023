@@ -15,8 +15,7 @@ import java.util.Set;
  * is created!
  */
 public strictfp class RobotPlayer {
-    int carrierCount = 0;
-    int launcherCount = 0;
+    static Direction hqDir;
     /**
      * We will use this variable to count the number of turns this robot has been alive.
      * You can use static variables like this to save any information you want. Keep in mind that even though
@@ -140,6 +139,7 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
+        // I STOLE THIS FROM COLTON NGL
         if (rc.getAnchor() != null) {
             // If I have an anchor singularly focus on getting it to the first island I see
             int[] islands = rc.senseNearbyIslands();
@@ -163,44 +163,80 @@ public strictfp class RobotPlayer {
                 }
             }
         }
-        // Try to gather from squares around us.
+
+        // Occasionally try out the carriers attack
+//        if (rng.nextInt(20) == 1) {
+//            RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
+//            if (enemyRobots.length > 0) {
+//                if (rc.canAttack(enemyRobots[0].location)) {
+//                    rc.attack(enemyRobots[0].location);
+//                }
+//            }
+//        }
+
+        // If we can see a well, move towards it
+        int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
+        int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
+
         MapLocation me = rc.getLocation();
-        for (int dx = -1; dx <= 1; dx++) {
-            for (int dy = -1; dy <= 1; dy++) {
-                MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
-                if (rc.canCollectResource(wellLocation, -1)) {
-                    if (rng.nextBoolean()) {
+
+        if ((amountOfAdamantium + amountOfMana) < 40) {
+
+            // Try to gather from squares around us.
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dy = -1; dy <= 1; dy++) {
+                    MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
+                    if (rc.canCollectResource(wellLocation, -1)) {
                         rc.collectResource(wellLocation, -1);
-                        rc.setIndicatorString("Collecting, now have, AD:" + 
-                            rc.getResourceAmount(ResourceType.ADAMANTIUM) + 
-                            " MN: " + rc.getResourceAmount(ResourceType.MANA) + 
-                            " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
+                        rc.setIndicatorString("Collecting, now have, AD:" +
+                                rc.getResourceAmount(ResourceType.ADAMANTIUM) +
+                                " MN: " + rc.getResourceAmount(ResourceType.MANA) +
+                                " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
                     }
                 }
             }
-        }
-        // Occasionally try out the carriers attack
-        /**if (rng.nextInt(20) == 1) {
-            RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
-            if (enemyRobots.length > 0) {
-                if (rc.canAttack(enemyRobots[0].location)) {
-                    rc.attack(enemyRobots[0].location);
+
+            // rc.setIndicatorString("Tried to sense a well near me and move to it");
+            WellInfo[] wells = rc.senseNearbyWells();
+            if (wells.length > 0) {
+                WellInfo well_one = wells[0];
+                Direction dir = me.directionTo(well_one.getMapLocation());
+                if (rc.canMove(dir)) {
+                    rc.move(dir);
+                    rc.setIndicatorString("Moving " + dir);
                 }
+            } else {
+
             }
-        }**/
-        
-        // If we can see a well, move towards it
-        WellInfo[] wells = rc.senseNearbyWells();
-        if (wells.length > 1 && rng.nextInt(3) == 1) {
-            WellInfo well_one = wells[1];
-            Direction dir = me.directionTo(well_one.getMapLocation());
-            if (rc.canMove(dir)) 
-                rc.move(dir);
         }
+        else {
+            // we have max we can carry, go back to the hq and deposit!
+            // System.out.println(headBackToHq);
+            RobotInfo[] findHQ = rc.senseNearbyRobots();
+            for (int i = 0; i < findHQ.length; i++){
+
+            }
+            MapLocation hqPos = new MapLocation(rc.readSharedArray(2), rc.readSharedArray(3));
+            Direction dirToHq = me.directionTo(hqPos);
+            if (rc.getLocation().isAdjacentTo(hqPos)) {
+                for (ResourceType resource: ResourceType.values()) {
+                    // System.out.println("" + resource + "");
+                    if (rc.canTransferResource(hqPos, resource, rc.getResourceAmount(resource))) {
+                        rc.transferResource(hqPos, resource, rc.getResourceAmount(resource));
+                        rc.setIndicatorString("Transferred " + resource + " to " + hqPos);
+                    }
+                }
+            } else if (rc.canMove(dirToHq)) {
+                rc.move(dirToHq);
+                rc.setIndicatorString("Moving " + dirToHq + " to get to " + hqPos);
+        }
+
+
         // Also try to move randomly.
         Direction dir = directions[rng.nextInt(directions.length)];
         if (rc.canMove(dir)) {
             rc.move(dir);
+            //rc.setIndicatorString("Moving " + dir);
         }
     }
 
