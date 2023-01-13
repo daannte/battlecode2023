@@ -132,6 +132,8 @@ public strictfp class RobotPlayer {
             // get x,y coords of the middle of the map
             middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
 
+            // if equal, that means this hq can see every other one of our hqs
+            if (rc.getRobotCount() == amountOfHqs)
 
             amountOfHqs = rc.readSharedArray(0) / 2;
             for (int i = 0; i < amountOfHqs; i++) {
@@ -144,14 +146,22 @@ public strictfp class RobotPlayer {
             int height = rc.getMapHeight();
             int halfHeight = (height / 2);
 
+            //plan: calculate symmetry for some maps, then use that map to make bots split evenly to enemy hqs
+
             //symmetry only has a chance to be calculated if # of hqs > 1
             if (amountOfHqs > 1) {
                 // calculate the symmetry of the map
-                // is it NOT vertical?
-//                if () {
+                // use first hq in list and compare against remaining in list
+                MapLocation originalCheckerHqPos = coordsOfHqs.get(0);
+
+                boolean notVerticalSymmetry = false;
+                boolean notHorizontalSymmetry = false;
+                boolean notRotationalSymmetry = false;
+                for (int i = 1; i < coordsOfHqs.size(); i++) {
+                    MapLocation currentCheckerHqPos = coordsOfHqs.get(i);
+//                    if (originalCheckerHqPos.x < middlePos.x)
 //
-//                }
-        //plan: calculate symmetry for some maps, then use that map to make bots split evenly to enemy hqs
+                }
             }
         }
 
@@ -201,6 +211,8 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
+        middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
+        System.out.println(middlePos);
         MapLocation me = rc.getLocation();
         if (turnCount == 1) {
             int amountOfHqs = rc.readSharedArray(0) / 2;
