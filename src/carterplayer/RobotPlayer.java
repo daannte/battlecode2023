@@ -153,10 +153,7 @@ public strictfp class RobotPlayer {
                     rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
                     break;
                 }
-                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationFar)) {
-                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationFar);
-                    break;
-                } else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
+                else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
                     rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationClose);
                     break;
                 }
@@ -305,8 +302,34 @@ public strictfp class RobotPlayer {
         // Try to attack someone
         int radius = rc.getType().actionRadiusSquared;
         Team opponent = rc.getTeam().opponent();
+        Team player = rc.getTeam();
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
+        RobotInfo[] allies = rc.senseNearbyRobots(radius, player);
         Direction dir = directions[rng.nextInt(directions.length)];
+        if (rc.getTeam() == Team.B) {
+            dir = Direction.NORTH;
+            if (!rc.canMove(dir)){
+                dir = Direction.EAST;
+                if (!rc.canMove(dir)){
+                    dir = Direction.WEST;
+                    if (!rc.canMove(dir)){
+                        dir = Direction.SOUTH;
+                    }
+                }
+            }
+        }
+        else {
+            dir = Direction.SOUTH;
+            if (!rc.canMove(dir)){
+                dir = Direction.EAST;
+                if (!rc.canMove(dir)){
+                    dir = Direction.WEST;
+                    if (!rc.canMove(dir)){
+                        dir = Direction.SOUTH;
+                    }
+                }
+            }
+        }
         MapLocation myLoc = rc.getLocation();
         if (enemies.length > 0) {
             // MapLocation toAttack = enemies[0].location;
@@ -317,6 +340,10 @@ public strictfp class RobotPlayer {
             }
             for (RobotInfo r : enemies){
                 if (r.type.equals(RobotType.HEADQUARTERS)){
+                    dir = myLoc.directionTo(r.location);
+                    break;
+                }
+                else if (!r.type.equals(RobotType.LAUNCHER) && enemies.length < 2 && allies.length > 2){
                     dir = myLoc.directionTo(r.location);
                     break;
                 }
