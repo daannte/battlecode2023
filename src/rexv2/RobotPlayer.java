@@ -1,4 +1,4 @@
-package danteplayer;
+package rexv2;
 
 import battlecode.common.*;
 
@@ -112,9 +112,8 @@ public strictfp class RobotPlayer {
     static void runHeadquarters(RobotController rc) throws GameActionException {
         // Pick a direction to build in.
         MapLocation hqLocation = rc.getLocation();
-        int hqActionRadius = RobotType.HEADQUARTERS.actionRadiusSquared;
         for (Direction direction : directions) {
-            MapLocation spawnLocation = hqLocation.add(direction);
+            MapLocation spawnLocation = rc.getLocation().add(direction);
             WellInfo[] wells = rc.senseNearbyWells(-1);
             if (wells.length >= 1) {
                 for (WellInfo well : wells) {
@@ -175,8 +174,7 @@ public strictfp class RobotPlayer {
         int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
         MapLocation me = rc.getLocation();
         boolean dontMove = false;
-        // If carriers don't have resources then go get some until they can't get more.
-        if (!((amountOfAdamantium + amountOfMana) == GameConstants.CARRIER_CAPACITY)) {
+        if ((amountOfAdamantium + amountOfMana) < 40) {
             WellInfo[] wells = rc.senseNearbyWells();
             if (wells.length > 0) {
                 MapLocation closestWellLocation = wells[0].getMapLocation();
