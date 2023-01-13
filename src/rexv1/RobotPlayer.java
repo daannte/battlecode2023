@@ -1,11 +1,8 @@
-package danteplayer;
+package rexv1;
 
 import battlecode.common.*;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
@@ -20,7 +17,7 @@ public strictfp class RobotPlayer {
      * these variables are static, in Battlecode they aren't actually shared between your robots.
      */
     static int turnCount = 0;
-    static MapLocation headquarters;
+    static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
 
     /**
      * A random number generator.
@@ -32,14 +29,14 @@ public strictfp class RobotPlayer {
 
     /** Array containing all the possible movement directions. */
     static final Direction[] directions = {
-        Direction.NORTH,
-        Direction.NORTHEAST,
-        Direction.EAST,
-        Direction.SOUTHEAST,
-        Direction.SOUTH,
-        Direction.SOUTHWEST,
-        Direction.WEST,
-        Direction.NORTHWEST,
+            Direction.NORTH,
+            Direction.NORTHEAST,
+            Direction.EAST,
+            Direction.SOUTHEAST,
+            Direction.SOUTH,
+            Direction.SOUTHWEST,
+            Direction.WEST,
+            Direction.NORTHWEST,
     };
 
     /**
@@ -73,12 +70,12 @@ public strictfp class RobotPlayer {
                 // use different strategies on different robots. If you wish, you are free to rewrite
                 // this into a different control structure!
                 switch (rc.getType()) {
-                    case HEADQUARTERS:     runHeadquarters(rc);  break;
-                    case CARRIER:      runCarrier(rc);   break;
-                    case LAUNCHER: runLauncher(rc); break;
-                    case BOOSTER: // Examplefuncsplayer doesn't use any of these robot types below.
-                    case DESTABILIZER: // You might want to give them a try!
-                    case AMPLIFIER:       break;
+                    case HEADQUARTERS:      runHeadquarters(rc);    break;
+                    case CARRIER:           runCarrier(rc);         break;
+                    case LAUNCHER:          runLauncher(rc);        break;
+                    case BOOSTER:
+                    case DESTABILIZER:
+                    case AMPLIFIER:                                 break;
                 }
 
             } catch (GameActionException e) {
@@ -110,26 +107,33 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runHeadquarters(RobotController rc) throws GameActionException {
+        // takes up 3-9 spots in the shared array (depending on how many hq's)
+        if (turnCount == 1) {
+            MapLocation me = rc.getLocation();
+            int indicator = rc.readSharedArray(0);
+            rc.writeSharedArray(indicator+1, me.x);
+            rc.writeSharedArray(indicator+2, me.y);
+            rc.writeSharedArray(0, indicator+2);
+        }
         // Pick a direction to build in.
-        MapLocation hqLocation = rc.getLocation();
-        int hqActionRadius = RobotType.HEADQUARTERS.actionRadiusSquared;
-        for (Direction direction : directions) {
-            MapLocation spawnLocation = hqLocation.add(direction);
-            WellInfo[] wells = rc.senseNearbyWells(-1);
-            if (wells.length >= 1) {
-                for (WellInfo well : wells) {
-                    Direction closestToWell = hqLocation.directionTo(well.getMapLocation());
-                    MapLocation spawnCloseToWell = rc.getLocation().add(closestToWell);
-                    if (rc.canBuildRobot(RobotType.CARRIER, spawnCloseToWell)) {
-                        rc.buildRobot(RobotType.CARRIER, spawnCloseToWell);
-                    }
-                }
+        Direction dir = directions[rng.nextInt(directions.length)];
+        MapLocation newLoc = rc.getLocation().add(dir);
+//        if (rc.canBuildAnchor(Anchor.STANDARD)) {
+//            // If we can build an anchor do it!
+//            rc.buildAnchor(Anchor.STANDARD);
+//            rc.setIndicatorString("Building anchor! " + rc.getAnchor());
+//        }
+        if (rng.nextBoolean()) {
+            // Let's try to build a carrier.
+            rc.setIndicatorString("Trying to build a carrier");
+            if (rc.canBuildRobot(RobotType.CARRIER, newLoc)) {
+                rc.buildRobot(RobotType.CARRIER, newLoc);
             }
-            if (rc.canBuildRobot(RobotType.CARRIER, spawnLocation)) {
-                rc.buildRobot(RobotType.CARRIER, spawnLocation);
-            }
-            if(rc.canBuildRobot(RobotType.LAUNCHER, spawnLocation)){
-                rc.buildRobot(RobotType.LAUNCHER, spawnLocation);
+        } else {
+            // Let's try to build a launcher.
+            rc.setIndicatorString("Trying to build a launcher");
+            if (rc.canBuildRobot(RobotType.LAUNCHER, newLoc)) {
+                rc.buildRobot(RobotType.LAUNCHER, newLoc);
             }
         }
     }
@@ -139,13 +143,12 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
-        // Get the location of the HQ
         if (turnCount == 1) {
-            RobotInfo[] robots = rc.senseNearbyRobots();
-            for (RobotInfo robot : robots) {
-                if (robot.type == RobotType.HEADQUARTERS) {
-                    headquarters = robot.location;
-                }
+            int amountOfHqs = rc.readSharedArray(0) / 2;
+            for (int i = 0; i < amountOfHqs; i++) {
+                int ind = i*2;
+                MapLocation Hq = new MapLocation(rc.readSharedArray(ind+1), rc.readSharedArray(ind+2));
+                coordsOfHqs.add(Hq);
             }
         }
         if (rc.getAnchor() != null) {
@@ -171,22 +174,38 @@ public strictfp class RobotPlayer {
                 }
             }
         }
+
+        // Occasionally try out the carriers attack
+//        if (rng.nextInt(20) == 1) {
+//            RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
+//            if (enemyRobots.length > 0) {
+//                if (rc.canAttack(enemyRobots[0].location)) {
+//                    rc.attack(enemyRobots[0].location);
+//                }
+//            }
+//        }
+
+        // If we can see a well, move towards it
         int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
+
         MapLocation me = rc.getLocation();
         boolean dontMove = false;
-        // If carriers don't have resources then go get some until they can't get more.
-        if (!((amountOfAdamantium + amountOfMana) == GameConstants.CARRIER_CAPACITY)) {
+        if ((amountOfAdamantium + amountOfMana) < 40) {
+            // needa find a well
+            // rc.setIndicatorString("Tried to sense a well near me and move to it");
             WellInfo[] wells = rc.senseNearbyWells();
             if (wells.length > 0) {
-                MapLocation closestWellLocation = wells[0].getMapLocation();
+                MapLocation closestWellLoc = wells[0].getMapLocation();
                 for (WellInfo well : wells) {
-                    if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWellLocation)) {
-                        closestWellLocation = well.getMapLocation();
+                    if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWellLoc)) {
+                        closestWellLoc = well.getMapLocation();
                     }
                 }
-                if (me.isAdjacentTo(closestWellLocation)) {
+                if (me.isAdjacentTo(closestWellLoc)) {
+                    // if we are close enough to collect, we don't need to move closer, so don't move, and just collect
                     dontMove = true;
+                    // Try to gather from squares around us.
                     for (int dx = -1; dx <= 1; dx++) {
                         for (int dy = -1; dy <= 1; dy++) {
                             MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
@@ -200,36 +219,56 @@ public strictfp class RobotPlayer {
                         }
                     }
                 } else {
-                    Direction dir = me.directionTo(closestWellLocation);
+                    // if we aren't adjacent to the well, we can't collect, so move to it
+                    Direction dir = me.directionTo(closestWellLoc);
                     if (rc.canMove(dir)) {
                         rc.move(dir);
-                        rc.setIndicatorString("Closest well at " + closestWellLocation + " , im omw by moving " + dir);
-                        if (rc.isMovementReady()) {
-                            if (rc.canMove(dir)) {
-                                rc.move(dir);
-                            }
+                        rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir);
+                    }
+                    if (amountOfAdamantium + amountOfMana == 0) {
+                        //empty dudes can move a second time hehe
+                        Direction dir2 = me.directionTo(closestWellLoc);
+                        if (rc.canMove(dir2)) {
+                            rc.move(dir2);
+                            rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir2);
                         }
                     }
                 }
             }
-        } else {
-            // Take the resources back to HQ
-            Direction dirToHq = me.directionTo(headquarters);
-            if (rc.getLocation().isAdjacentTo(headquarters)) {
-                for (ResourceType resource : ResourceType.values()) {
-                    if (rc.canTransferResource(headquarters, resource, rc.getResourceAmount(resource))) {
-                        rc.transferResource(headquarters, resource, rc.getResourceAmount(resource));
-                        rc.setIndicatorString("Transferred " + resource + " to " + headquarters);
+        }
+        else {
+            // we have max we can carry, go back to the (closest) hq and deposit!
+            //System.out.println(coordsOfHqs);
+            MapLocation hqPos = coordsOfHqs.get(0);
+            for (MapLocation hqCoords : coordsOfHqs) {
+                if (me.distanceSquaredTo(hqCoords) < me.distanceSquaredTo(hqPos)) {
+                    hqPos = hqCoords;
+                }
+            }
+
+            Direction dirToHq = me.directionTo(hqPos);
+            if (rc.getLocation().isAdjacentTo(hqPos)) {
+                for (ResourceType resource: ResourceType.values()) {
+                    // System.out.println("" + resource + "");
+                    if (rc.canTransferResource(hqPos, resource, rc.getResourceAmount(resource))) {
+                        rc.transferResource(hqPos, resource, rc.getResourceAmount(resource));
+                        rc.setIndicatorString("Transferred " + resource + " to " + hqPos);
                     }
                 }
             } else if (rc.canMove(dirToHq)) {
                 rc.move(dirToHq);
+                rc.setIndicatorString("Moving " + dirToHq + " to get to " + hqPos);
+            } else {
+
             }
         }
-        // Also try to move randomly.
+
+        // move randomly if we want to move but couldn't find a valid spot
         Direction dir = directions[rng.nextInt(directions.length)];
         if (rc.canMove(dir) && !dontMove) {
             rc.move(dir);
+            //rc.setIndicatorString("Moving " + dir);
+            dontMove = false;
         }
     }
 
@@ -243,12 +282,14 @@ public strictfp class RobotPlayer {
         Team opponent = rc.getTeam().opponent();
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
         if (enemies.length > 0) {
+            // MapLocation toAttack = enemies[0].location;
             MapLocation toAttack = enemies[0].location;
             if (rc.canAttack(toAttack)) {
-                rc.attack(toAttack);
                 rc.setIndicatorString("Attacking");
+                rc.attack(toAttack);
             }
         }
+
         // Also try to move randomly.
         Direction dir = directions[rng.nextInt(directions.length)];
         if (rc.canMove(dir)) {
