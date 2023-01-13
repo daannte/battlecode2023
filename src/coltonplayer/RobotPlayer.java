@@ -19,6 +19,7 @@ public strictfp class RobotPlayer {
      */
     static int turnCount = 0;
     static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
+    static ArrayList<MapLocation> possibleCoordsOfEnemyHqs = new ArrayList<MapLocation>();
     static int amountOfHqs;
     static MapLocation middlePos = null;
     //static boolean launcherBeenToMiddle = false;
@@ -125,43 +126,58 @@ public strictfp class RobotPlayer {
             // turn 1 shenanigans
             // put this hq into the array with our hq's
             int indicator = rc.readSharedArray(0);
-            rc.writeSharedArray(indicator+1, me.x);
-            rc.writeSharedArray(indicator+2, me.y);
-            rc.writeSharedArray(0, indicator+2);
+            rc.writeSharedArray(indicator + 1, me.x);
+            rc.writeSharedArray(indicator + 2, me.y);
+            rc.writeSharedArray(0, indicator + 2);
 
             // get x,y coords of the middle of the map
-            middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
+            middlePos = new MapLocation((int) Math.round((double) rc.getMapWidth() / 2), (int) Math.round((double) rc.getMapWidth() / 2));
 
-            // if equal, that means this hq can see every other one of our hqs
-            if (rc.getRobotCount() == amountOfHqs)
-
-            amountOfHqs = rc.readSharedArray(0) / 2;
-            for (int i = 0; i < amountOfHqs; i++) {
-                int ind = i*2;
-                MapLocation Hq = new MapLocation(rc.readSharedArray(ind+1), rc.readSharedArray(ind+2));
-                coordsOfHqs.add(Hq);
-            }
             int width = rc.getMapWidth();
             int halfWidth = (width / 2);
             int height = rc.getMapHeight();
             int halfHeight = (height / 2);
 
-            //plan: calculate symmetry for some maps, then use that map to make bots split evenly to enemy hqs
+            // if equal, that means this hq can see every other one of our hqs
+            if (rc.getRobotCount() == amountOfHqs) {
+                //this block uses all of our hqs to guess the symmetry
+                amountOfHqs = rc.readSharedArray(0) / 2;
+                for (int i = 0; i < amountOfHqs; i++) {
+                    int ind = i * 2;
+                    MapLocation Hq = new MapLocation(rc.readSharedArray(ind + 1), rc.readSharedArray(ind + 2));
+                    coordsOfHqs.add(Hq);
+                }
 
-            //symmetry only has a chance to be calculated if # of hqs > 1
-            if (amountOfHqs > 1) {
-                // calculate the symmetry of the map
-                // use first hq in list and compare against remaining in list
-                MapLocation originalCheckerHqPos = coordsOfHqs.get(0);
+                //plan: calculate symmetry for some maps, then use that map to make bots split evenly to enemy hqs
 
-                boolean notVerticalSymmetry = false;
-                boolean notHorizontalSymmetry = false;
-                boolean notRotationalSymmetry = false;
-                for (int i = 1; i < coordsOfHqs.size(); i++) {
-                    MapLocation currentCheckerHqPos = coordsOfHqs.get(i);
+                //symmetry only has a chance to be calculated if # of hqs > 1
+                if (amountOfHqs > 1) {
+                    // calculate the symmetry of the map
+                    // use first hq in list and compare against remaining in list
+                    MapLocation originalCheckerHqPos = coordsOfHqs.get(0);
+
+                    boolean notVerticalSymmetry = false;
+                    boolean notHorizontalSymmetry = false;
+                    boolean notRotationalSymmetry = false;
+                    for (int i = 1; i < coordsOfHqs.size(); i++) {
+                        MapLocation currentCheckerHqPos = coordsOfHqs.get(i);
 //                    if (originalCheckerHqPos.x < middlePos.x)
 //
+                    }
                 }
+            }
+
+            // this block puts the three possible locations the enemy hq can be based on its position into a list
+            MapLocation possibleEnemyHqFromVSym = new MapLocation((width - me.x) - 1 , me.y);
+            MapLocation possibleEnemyHqFromHSym = new MapLocation(me.x , (height - me.y) - 1);
+            MapLocation possibleEnemyHqFromRSym = new MapLocation((width - me.x) - 1 , (height - me.y) - 1);
+            possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromVSym);
+            possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromHSym);
+            possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromRSym);
+
+            for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
+                rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
+                System.out.println("Indicator dot placed");
             }
         }
 
@@ -212,7 +228,7 @@ public strictfp class RobotPlayer {
      */
     static void runCarrier(RobotController rc) throws GameActionException {
         middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
-        System.out.println(middlePos);
+        // System.out.println(middlePos);
         MapLocation me = rc.getLocation();
         if (turnCount == 1) {
             int amountOfHqs = rc.readSharedArray(0) / 2;
