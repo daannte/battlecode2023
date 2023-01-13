@@ -305,7 +305,9 @@ public strictfp class RobotPlayer {
         // Try to attack someone
         int radius = rc.getType().actionRadiusSquared;
         Team opponent = rc.getTeam().opponent();
+        Team player = rc.getTeam();
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
+        RobotInfo[] allies = rc.senseNearbyRobots(radius, player);
         Direction dir = directions[rng.nextInt(directions.length)];
         MapLocation myLoc = rc.getLocation();
         if (enemies.length > 0) {
@@ -320,7 +322,7 @@ public strictfp class RobotPlayer {
                     dir = myLoc.directionTo(r.location);
                     break;
                 }
-                else if (!r.type.equals(RobotType.LAUNCHER) && enemies.length < 2){
+                else if (!r.type.equals(RobotType.LAUNCHER) && enemies.length < 2 && allies.length > 2){
                     dir = myLoc.directionTo(r.location);
                     break;
                 }
