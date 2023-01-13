@@ -320,6 +320,10 @@ public strictfp class RobotPlayer {
                     dir = myLoc.directionTo(r.location);
                     break;
                 }
+                else if (!r.type.equals(RobotType.LAUNCHER) && enemies.length < 2){
+                    dir = myLoc.directionTo(r.location);
+                    break;
+                }
             }
         }
         // Also try to move randomly.
