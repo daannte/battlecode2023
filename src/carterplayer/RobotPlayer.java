@@ -309,9 +309,9 @@ public strictfp class RobotPlayer {
         if (rc.getTeam() == Team.B) {
             dir = Direction.NORTH;
             if (!rc.canMove(dir)){
-                dir = Direction.EAST;
+                dir = Direction.WEST;
                 if (!rc.canMove(dir)){
-                    dir = Direction.WEST;
+                    dir = Direction.EAST;
                     if (!rc.canMove(dir)){
                         dir = Direction.SOUTH;
                     }
