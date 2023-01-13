@@ -153,10 +153,7 @@ public strictfp class RobotPlayer {
                     rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
                     break;
                 }
-                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationFar)) {
-                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationFar);
-                    break;
-                } else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
+                else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
                     rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationClose);
                     break;
                 }
