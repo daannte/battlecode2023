@@ -125,13 +125,15 @@ public strictfp class RobotPlayer {
 
         // Pick a direction to build in.
         for (Direction direction : directions) {
-            MapLocation attackerSpawnLocation = rc.getLocation().add(direction);
-            MapLocation carrierSpawnLocation = attackerSpawnLocation;
+            MapLocation attackerSpawnLocation = rc.getLocation().add(direction).add(direction);
+            MapLocation carrierSpawnLocationClose = attackerSpawnLocation;
+            MapLocation carrierSpawnLocationFar = attackerSpawnLocation;
 
             WellInfo[] wells = rc.senseNearbyWells(-1);
             for (WellInfo well : wells) {
                 Direction closestToWell = me.directionTo(well.getMapLocation());
-                carrierSpawnLocation = me.add(closestToWell);
+                carrierSpawnLocationClose = me.add(closestToWell);
+                carrierSpawnLocationFar = carrierSpawnLocationClose.add(closestToWell);
             }
             if (turnCount <= 3) {
                 if (rc.canBuildRobot(RobotType.LAUNCHER, attackerSpawnLocation)){
@@ -139,8 +141,11 @@ public strictfp class RobotPlayer {
                     break;
                 }
             } else if (turnCount <= 7) {
-                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocation)) {
-                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocation);
+                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationFar)) {
+                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationFar);
+                    break;
+                } else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
+                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationClose);
                     break;
                 }
             } else {
@@ -148,8 +153,11 @@ public strictfp class RobotPlayer {
                     rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
                     break;
                 }
-                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocation)) {
-                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocation);
+                if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationFar)) {
+                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationFar);
+                    break;
+                } else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
+                    rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationClose);
                     break;
                 }
             }
