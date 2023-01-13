@@ -19,8 +19,10 @@ public strictfp class RobotPlayer {
      */
     static int turnCount = 0;
     static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
+    static int amountOfHqs;
     static MapLocation middlePos = null;
-    static boolean launcherBeenToMiddle = false;
+    //static boolean launcherBeenToMiddle = false;
+    static boolean isScout = false;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
@@ -129,6 +131,28 @@ public strictfp class RobotPlayer {
 
             // get x,y coords of the middle of the map
             middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
+
+
+            amountOfHqs = rc.readSharedArray(0) / 2;
+            for (int i = 0; i < amountOfHqs; i++) {
+                int ind = i*2;
+                MapLocation Hq = new MapLocation(rc.readSharedArray(ind+1), rc.readSharedArray(ind+2));
+                coordsOfHqs.add(Hq);
+            }
+            int width = rc.getMapWidth();
+            int halfWidth = (width / 2);
+            int height = rc.getMapHeight();
+            int halfHeight = (height / 2);
+
+            //symmetry only has a chance to be calculated if # of hqs > 1
+            if (amountOfHqs > 1) {
+                // calculate the symmetry of the map
+                // is it NOT vertical?
+//                if () {
+//
+//                }
+        //plan: calculate symmetry for some maps, then use that map to make bots split evenly to enemy hqs
+            }
         }
 
         // Pick a direction to build in.
@@ -325,30 +349,35 @@ public strictfp class RobotPlayer {
                 rc.attack(toAttack);
             }
         }
-        // if we are not at the middle
-        // if (!(me.isAdjacentTo(middlePos)) && !launcherBeenToMiddle) {
-        if (!(me.isAdjacentTo(middlePos))) {
-            // try to move to middle
-            if (rc.canMove(rc.getLocation().directionTo(middlePos))) {
-                rc.move(rc.getLocation().directionTo(middlePos));
-                rc.setIndicatorString("Moving to middle");
-            } else {
-                // try to move randomly.
-                Direction dir = directions[rng.nextInt(directions.length)];
-                if (rc.canMove(dir)) {
-                    rc.setIndicatorString("Tried moving to middle, moving randomly instead");
-                    rc.move(dir);
-                }
-            }
-        } else {
-            // we are near the middle
-            launcherBeenToMiddle = true;
-            // try to move randomly.
-            Direction dir = directions[rng.nextInt(directions.length)];
-            if (rc.canMove(dir)) {
-                rc.setIndicatorString("Moving very randomly");
-                rc.move(dir);
-            }
-        }
+
+
+
+
+
+//        // if we are not at the middle
+//        // if (!(me.isAdjacentTo(middlePos)) && !launcherBeenToMiddle) {
+//        if (!(me.isAdjacentTo(middlePos))) {
+//            // try to move to middle
+//            if (rc.canMove(rc.getLocation().directionTo(middlePos))) {
+//                rc.move(rc.getLocation().directionTo(middlePos));
+//                rc.setIndicatorString("Moving to middle");
+//            } else {
+//                // try to move randomly.
+//                Direction dir = directions[rng.nextInt(directions.length)];
+//                if (rc.canMove(dir)) {
+//                    rc.setIndicatorString("Tried moving to middle, moving randomly instead");
+//                    rc.move(dir);
+//                }
+//            }
+//        } else {
+//            // we are near the middle
+//            launcherBeenToMiddle = true;
+//            // try to move randomly.
+//            Direction dir = directions[rng.nextInt(directions.length)];
+//            if (rc.canMove(dir)) {
+//                rc.setIndicatorString("Moving very randomly");
+//                rc.move(dir);
+//            }
+//        }
     }
 }
