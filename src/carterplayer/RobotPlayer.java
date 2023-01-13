@@ -325,7 +325,7 @@ public strictfp class RobotPlayer {
         // Also try to move randomly.
 
         if (rc.canMove(dir)) {
-            rc.move(dir);//a
+            rc.move(dir);//aa
         }
         else {
             dir = directions[rng.nextInt(directions.length)];
