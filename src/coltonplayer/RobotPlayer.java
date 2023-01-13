@@ -138,7 +138,23 @@ public strictfp class RobotPlayer {
             int height = rc.getMapHeight();
             int halfHeight = (height / 2);
 
-            // if equal, that means this hq can see every other one of our hqs
+            // this block puts the three possible locations the enemy hq can be based on its position into a list
+            MapLocation possibleEnemyHqFromVSym = new MapLocation((width - me.x) - 1 , me.y);
+            MapLocation possibleEnemyHqFromHSym = new MapLocation(me.x , (height - me.y) - 1);
+            MapLocation possibleEnemyHqFromRSym = new MapLocation((width - me.x) - 1 , (height - me.y) - 1);
+            possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromVSym);
+            possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromHSym);
+            possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromRSym);
+
+            for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
+                rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
+                System.out.println("Indicator dot placed");
+            }
+
+
+
+            // if equal, that means this hq was the last to add its coords to the shared array. Meaning, it has all the
+            // necessary information to GUESS which symmetry the map may be in.
             if (rc.getRobotCount() == amountOfHqs) {
                 //this block uses all of our hqs to guess the symmetry
                 amountOfHqs = rc.readSharedArray(0) / 2;
@@ -165,19 +181,6 @@ public strictfp class RobotPlayer {
 //
                     }
                 }
-            }
-
-            // this block puts the three possible locations the enemy hq can be based on its position into a list
-            MapLocation possibleEnemyHqFromVSym = new MapLocation((width - me.x) - 1 , me.y);
-            MapLocation possibleEnemyHqFromHSym = new MapLocation(me.x , (height - me.y) - 1);
-            MapLocation possibleEnemyHqFromRSym = new MapLocation((width - me.x) - 1 , (height - me.y) - 1);
-            possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromVSym);
-            possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromHSym);
-            possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromRSym);
-
-            for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
-                rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
-                System.out.println("Indicator dot placed");
             }
         }
 
