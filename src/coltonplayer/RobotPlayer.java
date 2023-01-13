@@ -20,6 +20,7 @@ public strictfp class RobotPlayer {
     static int turnCount = 0;
     static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
     static MapLocation middlePos = null;
+    static boolean launcherBeenToMiddle = false;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
@@ -116,16 +117,18 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runHeadquarters(RobotController rc) throws GameActionException {
-        // get x,y coords of the middle of the map
-        //middlePos.add((rc.getMapWidth() / 2));
-        //middlePos.add((rc.getMapHeight() / 2));
         // takes up 3-9 spots in the shared array (depending on how many hq's)
         MapLocation me = rc.getLocation();
         if (turnCount == 1) {
+            // turn 1 shenanigans
+            // put this hq into the array with our hq's
             int indicator = rc.readSharedArray(0);
             rc.writeSharedArray(indicator+1, me.x);
             rc.writeSharedArray(indicator+2, me.y);
             rc.writeSharedArray(0, indicator+2);
+
+            // get x,y coords of the middle of the map
+            middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
         }
 
         // Pick a direction to build in.
@@ -174,7 +177,7 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
-        System.out.println("yo");
+        MapLocation me = rc.getLocation();
         if (turnCount == 1) {
             int amountOfHqs = rc.readSharedArray(0) / 2;
             for (int i = 0; i < amountOfHqs; i++) {
@@ -221,7 +224,6 @@ public strictfp class RobotPlayer {
         int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
         int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
 
-        MapLocation me = rc.getLocation();
         boolean dontMove = false;
         if ((amountOfAdamantium + amountOfMana) < 40) {
             // needa find a well
@@ -308,23 +310,45 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runLauncher(RobotController rc) throws GameActionException {
+        if (turnCount == 1) {
+            middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
+        }
+        MapLocation me = rc.getLocation();
         // Try to attack someone
         int radius = rc.getType().actionRadiusSquared;
         Team opponent = rc.getTeam().opponent();
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
         if (enemies.length > 0) {
-            // MapLocation toAttack = enemies[0].location;
             MapLocation toAttack = enemies[0].location;
             if (rc.canAttack(toAttack)) {
-                rc.setIndicatorString("Attacking");        
+                rc.setIndicatorString("Attacking");
                 rc.attack(toAttack);
             }
         }
-
-        // Also try to move randomly.
-        Direction dir = directions[rng.nextInt(directions.length)];
-        if (rc.canMove(dir)) {
-            rc.move(dir);
+        // if we are not at the middle
+        // if (!(me.isAdjacentTo(middlePos)) && !launcherBeenToMiddle) {
+        if (!(me.isAdjacentTo(middlePos))) {
+            // try to move to middle
+            if (rc.canMove(rc.getLocation().directionTo(middlePos))) {
+                rc.move(rc.getLocation().directionTo(middlePos));
+                rc.setIndicatorString("Moving to middle");
+            } else {
+                // try to move randomly.
+                Direction dir = directions[rng.nextInt(directions.length)];
+                if (rc.canMove(dir)) {
+                    rc.setIndicatorString("Tried moving to middle, moving randomly instead");
+                    rc.move(dir);
+                }
+            }
+        } else {
+            // we are near the middle
+            launcherBeenToMiddle = true;
+            // try to move randomly.
+            Direction dir = directions[rng.nextInt(directions.length)];
+            if (rc.canMove(dir)) {
+                rc.setIndicatorString("Moving very randomly");
+                rc.move(dir);
+            }
         }
     }
 }
