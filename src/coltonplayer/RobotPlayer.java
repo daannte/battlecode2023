@@ -1,6 +1,7 @@
 package coltonplayer;
 
 import battlecode.common.*;
+import scala.Tuple1;
 
 import java.util.*;
 
@@ -18,6 +19,7 @@ public strictfp class RobotPlayer {
      */
     static int turnCount = 0;
     static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
+    static MapLocation middlePos = null;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
@@ -114,6 +116,9 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runHeadquarters(RobotController rc) throws GameActionException {
+        // get x,y coords of the middle of the map
+        //middlePos.add((rc.getMapWidth() / 2));
+        //middlePos.add((rc.getMapHeight() / 2));
         // takes up 3-9 spots in the shared array (depending on how many hq's)
         MapLocation me = rc.getLocation();
         if (turnCount == 1) {
@@ -169,6 +174,7 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
+        System.out.println("yo");
         if (turnCount == 1) {
             int amountOfHqs = rc.readSharedArray(0) / 2;
             for (int i = 0; i < amountOfHqs; i++) {
