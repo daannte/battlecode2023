@@ -20,15 +20,20 @@ public strictfp class RobotPlayer {
     static int turnCount = 0;
     static ArrayList<MapLocation> coordsOfHqs = new ArrayList<MapLocation>();
     static ArrayList<MapLocation> possibleCoordsOfEnemyHqs = new ArrayList<MapLocation>();
-    static int amountOfHqs;
+    static MapLocation possibleEnemyHqFromVSym;
+    static MapLocation possibleEnemyHqFromHSym;
+    static MapLocation possibleEnemyHqFromRSym;
+    static String theSymmetryIs = null;
+    static int amountOfHqsThisHqKnows;
+    static int amountOfHqsInThisGame;
     static MapLocation middlePos = null;
     //static boolean launcherBeenToMiddle = false;
     static boolean isScout = false;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
-     * [       0-8       ,                               10-63                              ]
-     *      hq coords
+     * [       0-8       ,  9   ,                              10-63                              ]
+     *      hq coords     #ofhqs
      */
 
     /**
@@ -67,7 +72,7 @@ public strictfp class RobotPlayer {
         System.out.println("I'm a " + rc.getType() + " and I just got created! I have health " + rc.getHealth());
 
         // You can also use indicators to save debug notes in replays.
-        rc.setIndicatorString("Hello world!");
+        // rc.setIndicatorString("Hello world!");
 
         while (true) {
             // This code runs during the entire lifespan of the robot, which is why it is in an infinite
@@ -123,9 +128,13 @@ public strictfp class RobotPlayer {
         // takes up 3-9 spots in the shared array (depending on how many hq's)
         MapLocation me = rc.getLocation();
         if (turnCount == 1) {
+            rc.setIndicatorString("Its turn 1 baby");
             // turn 1 shenanigans
             // put this hq into the array with our hq's
             int indicator = rc.readSharedArray(0);
+            if (indicator == 0) {
+                rc.writeSharedArray(9, rc.getRobotCount());
+            }
             rc.writeSharedArray(indicator + 1, me.x);
             rc.writeSharedArray(indicator + 2, me.y);
             rc.writeSharedArray(0, indicator + 2);
@@ -139,26 +148,23 @@ public strictfp class RobotPlayer {
             int halfHeight = (height / 2);
 
             // this block puts the three possible locations the enemy hq can be based on its position into a list
-            MapLocation possibleEnemyHqFromVSym = new MapLocation((width - me.x) - 1 , me.y);
-            MapLocation possibleEnemyHqFromHSym = new MapLocation(me.x , (height - me.y) - 1);
-            MapLocation possibleEnemyHqFromRSym = new MapLocation((width - me.x) - 1 , (height - me.y) - 1);
+            possibleEnemyHqFromVSym = new MapLocation((width - me.x) - 1 , me.y);
+            possibleEnemyHqFromHSym = new MapLocation(me.x , (height - me.y) - 1);
+            possibleEnemyHqFromRSym = new MapLocation((width - me.x) - 1 , (height - me.y) - 1);
             possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromVSym);
             possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromHSym);
             possibleCoordsOfEnemyHqs.add(possibleEnemyHqFromRSym);
 
-            for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
-                rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
-                System.out.println("Indicator dot placed");
-            }
-
-
-
+            amountOfHqsThisHqKnows = rc.readSharedArray(0) / 2;
+            amountOfHqsInThisGame = rc.readSharedArray(9);
+            //System.out.println("rc.getRobotCount() returns: " + rc.getRobotCount() + "\n");
             // if equal, that means this hq was the last to add its coords to the shared array. Meaning, it has all the
             // necessary information to GUESS which symmetry the map may be in.
-            if (rc.getRobotCount() == amountOfHqs) {
+            rc.setIndicatorString(amountOfHqsThisHqKnows + " | " + amountOfHqsInThisGame);
+            if (amountOfHqsThisHqKnows == amountOfHqsInThisGame) {
+                rc.setIndicatorString("This hq is the last to add its coords to the array");
                 //this block uses all of our hqs to guess the symmetry
-                amountOfHqs = rc.readSharedArray(0) / 2;
-                for (int i = 0; i < amountOfHqs; i++) {
+                for (int i = 0; i < amountOfHqsThisHqKnows; i++) {
                     int ind = i * 2;
                     MapLocation Hq = new MapLocation(rc.readSharedArray(ind + 1), rc.readSharedArray(ind + 2));
                     coordsOfHqs.add(Hq);
@@ -167,7 +173,7 @@ public strictfp class RobotPlayer {
                 //plan: calculate symmetry for some maps, then use that map to make bots split evenly to enemy hqs
 
                 //symmetry only has a chance to be calculated if # of hqs > 1
-                if (amountOfHqs > 1) {
+                if (amountOfHqsThisHqKnows > 1) {
                     // calculate the symmetry of the map
                     // use first hq in list and compare against remaining in list
                     MapLocation originalCheckerHqPos = coordsOfHqs.get(0);
@@ -177,11 +183,96 @@ public strictfp class RobotPlayer {
                     boolean notRotationalSymmetry = false;
                     for (int i = 1; i < coordsOfHqs.size(); i++) {
                         MapLocation currentCheckerHqPos = coordsOfHqs.get(i);
-//                    if (originalCheckerHqPos.x < middlePos.x)
-//
+                        //see if it fails being a vertical symmetry
+
+                        if (((originalCheckerHqPos.x < middlePos.x) && (currentCheckerHqPos.x > middlePos.x)) || (originalCheckerHqPos.x > middlePos.x) && (currentCheckerHqPos.x < middlePos.x)) {
+                            //these two hqs are on opposite sides of the vertical symmetry line, so it CANNOT BE VERTICAL SYMMETRY
+                            notVerticalSymmetry = true;
+                            //remove the enemy hq calculated with vertical symmetry from the possible enemy hq spots
+                            possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromVSym);
+                        }
+                        if (((originalCheckerHqPos.y < middlePos.y) && (currentCheckerHqPos.y > middlePos.y)) || ((originalCheckerHqPos.y > middlePos.y) && (currentCheckerHqPos.y < middlePos.y))) {
+                            //these two hqs are on opposite sides of the vertical symmetry line, so it CANNOT BE VERTICAL SYMMETRY
+                            notVerticalSymmetry = true;
+                            //remove the enemy hq calculated with vertical symmetry from the possible enemy hq spots
+                            possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromHSym);
+                        }
+
+                    }
+
+                    // if the length of possibleCoordsOfEnemyHqs is 1, then we know the mf symmetry baby
+                    rc.setIndicatorString(String.valueOf(possibleCoordsOfEnemyHqs.size()));
+                    if (possibleCoordsOfEnemyHqs.size() == 1) {
+                        rc.setIndicatorDot(possibleCoordsOfEnemyHqs.get(0), 0, 255, 0);
+                    } else {
+                        // these indicators are what the hq's have narrowed the possible enemy hq locations to
+                        for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
+                            rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
+                            System.out.println("Indicator dot placed");
+                        }
+                        //rc.setIndicatorString("I wrote my dots");
                     }
                 }
             }
+
+
+        }
+        if (turnCount == 2) {
+            //this will now just always be how many hqs there actually are
+            amountOfHqsThisHqKnows = rc.readSharedArray(0) / 2;
+            //every hq other than the last one now needs to use symmetry to try to narrow options
+            //this block uses all of our hqs to guess the symmetry
+            for (int i = 0; i < amountOfHqsThisHqKnows; i++) {
+                int ind = i * 2;
+                MapLocation Hq = new MapLocation(rc.readSharedArray(ind + 1), rc.readSharedArray(ind + 2));
+                coordsOfHqs.add(Hq);
+            }
+
+
+            //symmetry only has a chance to be calculated if # of hqs > 1
+            if (amountOfHqsThisHqKnows > 1) {
+                // calculate the symmetry of the map
+                // use first hq in list and compare against remaining in list
+                MapLocation originalCheckerHqPos = coordsOfHqs.get(0);
+
+                boolean notVerticalSymmetry = false;
+                boolean notHorizontalSymmetry = false;
+                boolean notRotationalSymmetry = false;
+                for (int i = 1; i < coordsOfHqs.size(); i++) {
+                    MapLocation currentCheckerHqPos = coordsOfHqs.get(i);
+                    //see if it fails being a vertical symmetry
+
+                    if (((originalCheckerHqPos.x < middlePos.x) && (currentCheckerHqPos.x > middlePos.x)) || (originalCheckerHqPos.x > middlePos.x) && (currentCheckerHqPos.x < middlePos.x)) {
+                        //these two hqs are on opposite sides of the vertical symmetry line, so it CANNOT BE VERTICAL SYMMETRY
+                        notVerticalSymmetry = true;
+                        //remove the enemy hq calculated with vertical symmetry from the possible enemy hq spots
+                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromVSym);
+                    }
+                    if (((originalCheckerHqPos.y < middlePos.y) && (currentCheckerHqPos.y > middlePos.y)) || ((originalCheckerHqPos.y > middlePos.y) && (currentCheckerHqPos.y < middlePos.y))) {
+                        //these two hqs are on opposite sides of the horizontal symmetry line, so it CANNOT BE HORIZONTAL SYMMETRY
+                        notVerticalSymmetry = true;
+                        //remove the enemy hq calculated with horizontal symmetry from the possible enemy hq spots
+                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromHSym);
+                    }
+                }
+
+                // if the length of possibleCoordsOfEnemyHqs is 1, then we know the mf symmetry baby
+                rc.setIndicatorString(String.valueOf(possibleCoordsOfEnemyHqs.size()));
+                if (possibleCoordsOfEnemyHqs.size() == 1) {
+
+                    rc.setIndicatorDot(possibleCoordsOfEnemyHqs.get(0), 0, 255, 0);
+                } else {
+                    // these indicators are what the hq's have narrowed the possible enemy hq locations to
+                    for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
+                        rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
+                        System.out.println("Indicator dot placed");
+                    }
+                    //rc.setIndicatorString("I wrote my dots");
+                }
+            }
+        }
+        if (turnCount == 3) {
+            if ()
         }
 
         // Pick a direction to build in.
