@@ -2,6 +2,7 @@ package danteplayer;
 
 import battlecode.common.*;
 
+import java.awt.*;
 import java.util.*;
 
 /**
@@ -21,7 +22,7 @@ public strictfp class RobotPlayer {
     static MapLocation[] headquarterLocations = new MapLocation[GameConstants.MAX_STARTING_HEADQUARTERS];
     static MapLocation islandLoc;
     static MapLocation closestWell;
-    static ResourceType closestWellResourceType;
+    static MapLocation middleOfMap;
     static boolean hasAnchor = false;
     static boolean collectAd = true;
     static Direction currentDirection = null;
@@ -125,9 +126,10 @@ public strictfp class RobotPlayer {
             addHqLocations(rc);
             lookForWellType(rc);
         }
-        if (rc.canBuildAnchor(Anchor.STANDARD) && turnCount > 50) {
-            rc.buildAnchor(Anchor.STANDARD);
-        }
+        if (turnCount <= 3) spawnRobot(rc, RobotType.LAUNCHER, spawnLocation);
+//        if (rc.canBuildAnchor(Anchor.STANDARD) && turnCount > 50) {
+//            rc.buildAnchor(Anchor.STANDARD);
+//        }
         if (collectAd && !adWells.isEmpty()) {
             spawnRobot(rc, RobotType.CARRIER, hqLocation.add(hqLocation.directionTo(adWells.iterator().next())));
             collectAd = false;
@@ -137,7 +139,7 @@ public strictfp class RobotPlayer {
         } else {
             spawnRobot(rc, RobotType.CARRIER, spawnLocation);
         }
-        if (turnCount > 3) spawnRobot(rc, RobotType.LAUNCHER, spawnLocation);
+        spawnRobot(rc, RobotType.LAUNCHER, spawnLocation);
     }
 
     /**
@@ -196,55 +198,43 @@ public strictfp class RobotPlayer {
      */
     static void runLauncher(RobotController rc) throws GameActionException {
         if (turnCount == 1) updateHqLocations(rc);
-        int radius = rc.getType().actionRadiusSquared;
+
+        middleOfMap = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2)
+                , (int) Math.round( (double) rc.getMapWidth() / 2));
+
         Team opponent = rc.getTeam().opponent();
+        int radius = rc.getType().actionRadiusSquared;
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
-        int lowestHealth = 100;
         int smallestDistance = 100;
         RobotInfo target = null;
         if (enemies.length > 0) {
             for (RobotInfo enemy: enemies){
-                int enemyHealth = enemy.getHealth();
-                int enemyDistance = enemy.getLocation().distanceSquaredTo(rc.getLocation());
-                if (enemyHealth < lowestHealth){
-                    target = enemy;
-                    lowestHealth = enemyHealth;
-                    smallestDistance = enemyDistance;
-                }
-                else if (enemyHealth == lowestHealth){
-                    if (enemyDistance < smallestDistance){
+                if (enemy.getType() == RobotType.LAUNCHER) {
+                    int enemyDistance = enemy.location.distanceSquaredTo(rc.getLocation());
+                    if (enemyDistance < smallestDistance) {
                         target = enemy;
                         smallestDistance = enemyDistance;
                     }
-                }
+                } else target = enemy;
             }
         }
         if (target != null){
-            if (rc.canAttack(target.getLocation()))
-                rc.attack(target.getLocation());
-        }
-        else {
-            WellInfo[] wells = rc.senseNearbyWells();
-            if (wells.length > 0){
-                MapLocation wellLoc = wells[0].getMapLocation();
-                Direction dir = rc.getLocation().directionTo(wellLoc);
-                if (rc.canMove(dir))
-                    rc.move(dir);
-            }
+            if (rc.canAttack(target.location)) rc.attack(target.location);
+        } else {
+            moveTo(rc, middleOfMap);
+            if (rc.getLocation().equals(middleOfMap)) moveRandomDir(rc);
         }
 
         RobotInfo[] visibleEnemies = rc.senseNearbyRobots(-1, opponent);
         for (RobotInfo enemy : visibleEnemies) {
-            if (enemy.getType() != RobotType.HEADQUARTERS) {
-                MapLocation enemyLocation = enemy.getLocation();
-                MapLocation robotLocation = rc.getLocation();
-                Direction moveDir = robotLocation.directionTo(enemyLocation);
-                if (rc.canMove(moveDir)) {
-                    rc.move(moveDir);
-                }
+            if (enemy.getType() == RobotType.HEADQUARTERS) {
+                moveTo(rc, enemy.getLocation());
+            }
+            else if (enemy.getType() != RobotType.HEADQUARTERS) {
+                moveTo(rc, enemy.getLocation());
             }
         }
-        moveRandomDir(rc);
+
     }
     /**
      * Spawn a robot on the map
@@ -327,7 +317,6 @@ public strictfp class RobotPlayer {
             for (WellInfo well : wells) {
                 if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWell)) {
                         closestWell = well.getMapLocation();
-                        closestWellResourceType = well.getResourceType();
                 }
             }
         }
@@ -336,17 +325,14 @@ public strictfp class RobotPlayer {
         WellInfo[] wells = rc.senseNearbyWells();
         if (wells.length >= 1) {
             for (WellInfo well : wells) {
-                if (well.getResourceType() == ResourceType.ADAMANTIUM) {
-                    adWells.add(well.getMapLocation());
-                }
+                if (well.getResourceType() == ResourceType.ADAMANTIUM) adWells.add(well.getMapLocation());
                 else mnWells.add(well.getMapLocation());
             }
         }
     }
     static int totalResources(RobotController rc) {
-        int total = rc.getResourceAmount(ResourceType.ADAMANTIUM) + rc.getResourceAmount(ResourceType.MANA)
+        return rc.getResourceAmount(ResourceType.ADAMANTIUM) + rc.getResourceAmount(ResourceType.MANA)
                 + rc.getResourceAmount(ResourceType.ELIXIR);
-        return total;
     }
     static void addHqLocations(RobotController rc) throws GameActionException {
         MapLocation me = rc.getLocation();
