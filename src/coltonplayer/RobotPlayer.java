@@ -37,7 +37,7 @@ public strictfp class RobotPlayer {
     //static boolean launcherBeenToMiddle = false;
     static boolean isScout = false;
     static int attackerIncrementer = 0;
-    static MapLocation attackerIsAttackingThisThing;
+    static MapLocation attackerIsAttackingThisLocation;
     static int numOfEnemyHqsInArray = 0;
 
     /**
@@ -195,70 +195,9 @@ public strictfp class RobotPlayer {
             }
 
         }
-//        if (turnCount == 2) {
-//            //this will now just always be how many hqs there actually are
-//            amountOfHqsThisHqKnows = rc.readSharedArray(0) / 2;
-//            //every hq other than the last one now needs to use symmetry to try to narrow options
-//            //this block uses all of our hqs to guess the symmetry
-//            for (int i = 0; i < amountOfHqsThisHqKnows; i++) {
-//                int ind = i * 2;
-//                MapLocation Hq = new MapLocation(rc.readSharedArray(ind + 1), rc.readSharedArray(ind + 2));
-//                coordsOfHqs.add(Hq);
-//            }
-//
-//            //symmetry only has a chance to be calculated if # of hqs > 1
-//            if (amountOfHqsThisHqKnows > 1) {
-//                // calculate the symmetry of the map
-//                // use first hq in list and compare against remaining in list
-//                MapLocation originalCheckerHqPos = coordsOfHqs.get(0);
-//
-//                boolean notVerticalSymmetry = false;
-//                boolean notHorizontalSymmetry = false;
-//                boolean notRotationalSymmetry = false;
-//                for (int i = 1; i < coordsOfHqs.size(); i++) {
-//                    MapLocation currentCheckerHqPos = coordsOfHqs.get(i);
-//                    //see if it fails being a vertical symmetry
-//
-//                    if (((originalCheckerHqPos.x < middlePos.x) && (currentCheckerHqPos.x > middlePos.x)) || (originalCheckerHqPos.x > middlePos.x) && (currentCheckerHqPos.x < middlePos.x)) {
-//                        //these two hqs are on opposite sides of the vertical symmetry line, so it CANNOT BE VERTICAL SYMMETRY
-//                        notVerticalSymmetry = true;
-//                        //remove the enemy hq calculated with vertical symmetry from the possible enemy hq spots
-//                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromVSym);
-//                    }
-//                    if (((originalCheckerHqPos.y < middlePos.y) && (currentCheckerHqPos.y > middlePos.y)) || ((originalCheckerHqPos.y > middlePos.y) && (currentCheckerHqPos.y < middlePos.y))) {
-//                        //these two hqs are on opposite sides of the horizontal symmetry line, so it CANNOT BE HORIZONTAL SYMMETRY
-//                        notHorizontalSymmetry = true;
-//                        //remove the enemy hq calculated with horizontal symmetry from the possible enemy hq spots
-//                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromHSym);
-//                    }
-//
-//                    if (true == false) {
-//                        // uhhhhh so how do eliminate rotational symmetry as an option
-//                        notRotationalSymmetry = true;
-//                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromRSym);
-//                    }
-//                }
-//
-//                // if the length of possibleCoordsOfEnemyHqs is 1, then we know the mf symmetry baby
-//                rc.setIndicatorString("SIZE: " + possibleCoordsOfEnemyHqs.size() + " Thing: " + possibleCoordsOfEnemyHqs.get(0));
-//                if (possibleCoordsOfEnemyHqs.size() == 1) {
-//                    MapLocation theFabledLocation = possibleCoordsOfEnemyHqs.get(0);
-//                    rc.setIndicatorDot(theFabledLocation, 0, 255, 0);
-//                    if (notHorizontalSymmetry && notVerticalSymmetry) theSymmetryIs = "R";
-//                    if (notVerticalSymmetry && notRotationalSymmetry) theSymmetryIs = "H";
-//                    if (notRotationalSymmetry && notHorizontalSymmetry) theSymmetryIs = "V";
-//                } else {
-//                    // these indicators are what the hq's have narrowed the possible enemy hq locations to
-//                    for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
-//                        rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
-//                        //System.out.println("Indicator dot placed");
-//                    }
-//                    //rc.setIndicatorString("I wrote my dots");
-//                }
-//            }
-//        }
 
         middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
+
         // Pick a direction to build in.
 
         //what map locations we want to try spawning an attacker in, starting with most wanted, ending with the least wanted
@@ -356,6 +295,11 @@ public strictfp class RobotPlayer {
         // System.out.println(middlePos);
         MapLocation me = rc.getLocation();
         giveCallingRobotAListOfOurHqs(rc);
+
+        if (turnCount == 1) {
+            amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
+        }
+
         if (rc.getAnchor() != null) {
             // If I have an anchor singularly focus on getting it to the first island I see
             int[] islands = rc.senseNearbyIslands();
@@ -461,7 +405,8 @@ public strictfp class RobotPlayer {
 
         // move randomly if we want to move but couldn't find a valid spot
         Direction dir = directions[rng.nextInt(directions.length)];
-        if (rc.canMove(dir) && !dontMove) {
+        if (rc.isMovementReady() && rc.canMove(dir) && !dontMove) {
+            //System.out.println(rc.canMove(dir));
             rc.move(dir);
             //rc.setIndicatorString("Moving " + dir);
         }
@@ -496,19 +441,24 @@ public strictfp class RobotPlayer {
 
         int ohBoy = rng.nextInt(69420) % modNumber;
 
+        int replaceThis = 0;
+
         // if the enemy hq coords are determined fs, we can beeline a target
         if (enemyHqCoordsLocated) {
-            int enemyHqX = (ohBoy * 2) + 10;
-            int enemyHqY = ((ohBoy * 2) + 1) + 10;
+            int enemyHqX = (replaceThis * 2) + 10;
+            int enemyHqY = ((replaceThis * 2) + 1) + 10;
             // enemy hq locked and loaded to be targeted
-            attackerIsAttackingThisThing = new MapLocation(rc.readSharedArray(enemyHqX), rc.readSharedArray(enemyHqY));
+            attackerIsAttackingThisLocation = new MapLocation(rc.readSharedArray(enemyHqX), rc.readSharedArray(enemyHqY));
         }
-        // try attacking before movement
-        attackerAttackAroundRandomly(rc);
 
-        // handle movement
-        rc.setIndicatorString(String.valueOf(enemyHqCoordsLocated));
-        if (attackerIsAttackingThisThing != null) {
+        // try attacking before movement
+        if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT) {
+            attackerAttackAround(rc);
+        }
+
+        //handle movement
+        if (attackerIsAttackingThisLocation != null) {
+            // moves the attacker closer to this location target
             attackerMoveToLocation(rc, me);
         } else {
             moveRandomly(rc);
@@ -516,7 +466,7 @@ public strictfp class RobotPlayer {
 
         //try attacking after moving
         if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT) {
-            attackerAttackAroundRandomly(rc);
+            attackerAttackAround(rc);
         }
 
     }
@@ -742,17 +692,38 @@ public strictfp class RobotPlayer {
      * @param rc RobotController
      * @throws GameActionException from senseNearbyRobots
      */
-    static void attackerAttackAroundRandomly(RobotController rc) throws GameActionException {
-        // can you attack? then attack!
+    static void attackerAttackAround(RobotController rc) throws GameActionException {
         int radius = rc.getType().actionRadiusSquared;
         Team opponent = rc.getTeam().opponent();
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
+//        rc.setIndicatorString(Arrays.toString(enemies));
+        int lowestHealth = 100;
+        int smallestDistance = 100;
+        RobotInfo target = null;
         if (enemies.length > 0) {
-            MapLocation toAttack = enemies[0].location;
-            if (rc.canAttack(toAttack)) {
-                //rc.setIndicatorString("Merked this poor disabled kid");
-                rc.attack(toAttack);
+            for (RobotInfo enemy: enemies){
+                // we cannot attack a headquarters!!! So make sure we don't even consider them!!!
+                if (enemy.getType() != RobotType.HEADQUARTERS) {
+                    int enemyHealth = enemy.getHealth();
+                    int enemyDistance = enemy.getLocation().distanceSquaredTo(rc.getLocation());
+                    System.out.println("loc: " + enemy.getLocation() + " health: " + enemyHealth + " distance: " + enemyDistance);
+                    if (enemyHealth < lowestHealth) {
+                        target = enemy;
+                        lowestHealth = enemyHealth;
+                        smallestDistance = enemyDistance;
+                    } else if (enemyHealth == lowestHealth) {
+                        if (enemyDistance < smallestDistance) {
+                            target = enemy;
+                            smallestDistance = enemyDistance;
+                        }
+                    }
+                }
             }
+        }
+        if (target != null){
+            System.out.println("TARGET: " + target.getLocation());
+            if (rc.canAttack(target.getLocation()))
+                rc.attack(target.getLocation());
         }
     }
 
@@ -763,16 +734,14 @@ public strictfp class RobotPlayer {
      * @throws GameActionException from move()
      */
     static void attackerMoveToLocation(RobotController rc, MapLocation me) throws GameActionException {
-
-        //rc.setIndicatorString("attacking hq " + attackerIsAttackingThisThing + " because " + ohBoy);
-        if (me.isAdjacentTo(attackerIsAttackingThisThing)) {
+        if (me.isAdjacentTo(attackerIsAttackingThisLocation)) {
             //we are right beside the thing we wanna attack, just vibeeeeee
         } else {
             // we aren't by the thing we wanna attack, move to it
 
             // if we have enemy hq, move to it
             // every attacker from this hq will just beeline its symmetrical enemy hq partner
-            Direction dir = me.directionTo(attackerIsAttackingThisThing);
+            Direction dir = me.directionTo(attackerIsAttackingThisLocation);
             Direction[] moveDirs = new Direction[5];
             moveDirs[0] = dir;
             moveDirs[1] = dir.rotateRight();
@@ -784,15 +753,20 @@ public strictfp class RobotPlayer {
                 Direction moveDir = moveDirs[i];
                 if (rc.canMove(moveDir)) {
                     rc.move(moveDir);
+                    rc.setIndicatorString("Moving towards " + attackerIsAttackingThisLocation + " by going " + moveDir);
                     break;
                 }
-                if (i == moveDirs.length - 1) {
+                if (i == (moveDirs.length - 1)) {
+                    // couldn't move towards the location we wanna attack
                     Direction randomDir = directions[rng.nextInt(directions.length)];
                     if (rc.canMove(randomDir)) {
                         rc.move(randomDir);
-                        //rc.setIndicatorString("Moving " + dir);
+                        rc.setIndicatorString("Moving " + dir + " randomly");
                     }
                 }
+            }
+            if (rc.isMovementReady()) {
+                rc.setIndicatorString("Didn't move, will change this later hopefully");
             }
         }
     }
