@@ -127,6 +127,7 @@ public strictfp class RobotPlayer {
             addHqLocations(rc);
             lookForWellType(rc);
         }
+        // Spawn three launchers to attack the other team
         if (turnCount <= 3) spawnRobot(rc, RobotType.LAUNCHER, spawnLocation);
 //        if (rc.canBuildAnchor(Anchor.STANDARD) && turnCount > 50) {
 //            rc.buildAnchor(Anchor.STANDARD);
