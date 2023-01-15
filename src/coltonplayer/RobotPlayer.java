@@ -686,7 +686,32 @@ public strictfp class RobotPlayer {
 //            }
 //        }
 
+/*
+------------------------------------------------------------------------------------------------------------------------
+                                        GENERAL FUNCTIONS
+------------------------------------------------------------------------------------------------------------------------
+*/
+    
+
+
+
+
+/*
+------------------------------------------------------------------------------------------------------------------------
+                                          HQ FUNCTIONS
+------------------------------------------------------------------------------------------------------------------------
+*/
+
+    /**
+     * Using an array of map locations, spawn a person as close to that map location as possible
+     * @param rc robot controller
+     * @param spawnLocations array of locations to be tested if we can spawn there. Sorted by index for what we want to
+     * try first (index 0 is first choice, last index is last choice)
+     * @param robotType which type of robot we want to spawn
+     * @throws GameActionException if buildRobot fails drastically (it won't dw)
+     */
     static void spawnADude(RobotController rc, MapLocation[] spawnLocations, RobotType robotType) throws GameActionException {
+        //
         for (int i = 0; i < spawnLocations.length; i++) {
             MapLocation spawnLoc = spawnLocations[i];
             rc.setIndicatorString(spawnLoc.toString());
@@ -706,6 +731,23 @@ public strictfp class RobotPlayer {
             }
         }
     }
+
+/*
+------------------------------------------------------------------------------------------------------------------------
+                                        CARRIER FUNCTIONS
+------------------------------------------------------------------------------------------------------------------------
+*/
+
+
+
+
+
+
+/*
+------------------------------------------------------------------------------------------------------------------------
+                                        ATTACKER FUNCTIONS
+------------------------------------------------------------------------------------------------------------------------
+*/
 
 }
 
