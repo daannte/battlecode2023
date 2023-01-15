@@ -21,10 +21,10 @@ public strictfp class RobotPlayer {
     static int carriersThisHqHasBuilt = 0;
     static int attackersThisHqHasBuilt = 0;
     static ArrayList<MapLocation> coordsOfOurHqs = new ArrayList<MapLocation>();
+    static ArrayList<MapLocation> coordsOfEnemyHqs = new ArrayList<MapLocation>();
     static ArrayList<MapLocation> possibleCoordsOfEnemyHqsAlwaysThree = new ArrayList<MapLocation>();
     static ArrayList<MapLocation> possibleCoordsOfEnemyHqs = new ArrayList<MapLocation>();
     static MapLocation thisHqsEnemyHqMirror = null;
-    static ArrayList<MapLocation> theActualEnemyHqCoords = new ArrayList<MapLocation>();
     static int amountOfLaunchersWhoChoseAHq = 0;
     static boolean enemyHqCoordsLocated = false;
     static MapLocation possibleEnemyHqFromVSym;
@@ -192,9 +192,8 @@ public strictfp class RobotPlayer {
             // more guesses for the enemy hq location.
             numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
             for (MapLocation anEnemyHqCoords : possibleCoordsOfEnemyHqs) {
-
                 rc.writeSharedArray((enemyHqCoordsStartingIndex + numOfEnemyHqsInArray), locationToInt(rc, anEnemyHqCoords));
-                rc.writeSharedArray(numOfEnemyHqsInArrayIndex, ++numOfEnemyHqsInArray);
+                rc.writeSharedArray(numOfEnemyHqsInArrayIndex, numOfEnemyHqsInArray + 1);
 
 //                rc.writeSharedArray(((numOfEnemyHqsInArray*2)+10), anEnemyHqCoords.x);
 //                rc.writeSharedArray(((numOfEnemyHqsInArray*2)+10)+1, anEnemyHqCoords.y);
@@ -436,13 +435,17 @@ public strictfp class RobotPlayer {
         amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
         numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
 
+        // on every turn, the attackers get an array of all the enemy hq locations in the array
+        giveCallingRobotAListOfEnemyHqs(rc);
+
+        // if # of our hqs == # of enemy hq locations in the array, those probable enemy locations are the real deal!
+        if (amountOfHqsInThisGame == numOfEnemyHqsInArray) {
+            enemyHqCoordsLocated = true;
+        }
+
         if (turnCount == 1) {
             // SPAWNED :D
 
-            // if # of our hqs == # of enemy hq locations in the array, those probable enemy locations are the real deal!
-            if (amountOfHqsInThisGame == numOfEnemyHqsInArray) {
-                enemyHqCoordsLocated = true;
-            }
             middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
 
             int atckEvenlyCounterIndex = rc.readSharedArray(attackHqEvenlyCounterIndex);
@@ -460,16 +463,27 @@ public strictfp class RobotPlayer {
 
         int replaceThis = 0;
 
-        // if the enemy hq coords are determined fs, we can beeline a target
-        if (enemyHqCoordsLocated) {
-//            int enemyHqX = (replaceThis * 2) + 10;
-//            int enemyHqY = ((replaceThis * 2) + 1) + 10;
-//            // enemy hq locked and loaded to be targeted
-//            attackerIsAttackingThisLocation = new MapLocation(rc.readSharedArray(enemyHqX), rc.readSharedArray(enemyHqY));
-
-            // replace this NEEDS to be between 0 and #ofenemyhqs
-            attackerIsAttackingThisLocation = intToLocation(rc, rc.readSharedArray(replaceThis + enemyHqCoordsStartingIndex));
+//        // if the enemy hq coords are determined fs, we can beeline an enemy hq by setting attackerIsAttackingThisLocation
+//        if (enemyHqCoordsLocated) {
+//
+//
+//
+//
+//
+//
+//            // use this if we want to split up every attacker in the game evenly among the enemy hq positions
+//            attackerIsAttackingThisLocation = intToLocation(rc, rc.readSharedArray(replaceThis + enemyHqCoordsStartingIndex));
+//        }
+        printSharedArray(rc);
+        System.out.println("coords of enemy hqs: " + coordsOfEnemyHqs);
+        MapLocation closestEnemyHq = coordsOfEnemyHqs.get(0);
+        for (MapLocation coordsOfEnemyHq : coordsOfEnemyHqs) {
+            if (me.distanceSquaredTo(coordsOfEnemyHq) < me.distanceSquaredTo(closestEnemyHq)) {
+                closestEnemyHq = coordsOfEnemyHq;
+            }
         }
+        attackerIsAttackingThisLocation = closestEnemyHq;
+
 
         // try attacking before movement
         if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT) {
@@ -497,16 +511,37 @@ public strictfp class RobotPlayer {
 ------------------------------------------------------------------------------------------------------------------------
 */
     /**
-     * simply gives the calling robot the knowledge of where all of our hqs are, for ease of access later on shall we need it
+     * simply gives the calling robot the knowledge of where all of our hqs are, for ease of access later on shall we
+     * need it. Sets the coordsOfOurHqs static list
      * @param rc RobotController
      * @throws GameActionException from reading array
      */
     static void giveCallingRobotAListOfOurHqs(RobotController rc) throws GameActionException {
-        // give each hq the coords of the other hqs
-        for (int i = hqCoordsStartingIndex; i <= amountOfHqsInThisGame; i++) {
+        // give the calling robot the coords of our hqs
+        for (int i = hqCoordsStartingIndex; i < hqCoordsStartingIndex + amountOfHqsInThisGame; i++) {
             MapLocation Hq = intToLocation(rc, rc.readSharedArray(i));
             coordsOfOurHqs.add(Hq);
         }
+    }
+
+    /**
+     * simply gives calling robot the locations of the enemy hqs that are in the shared array (all the enemy hq
+     * positions that we know so far at this point). Sets the coordsOfEnemyHqs static list
+     * @param rc RobotController
+     * @throws GameActionException from reading array
+     */
+    static void giveCallingRobotAListOfEnemyHqs(RobotController rc) throws GameActionException {
+        coordsOfEnemyHqs.clear();
+        //System.out.println(enemyHqCoordsStartingIndex);
+        //System.out.println(numOfEnemyHqsInArray + enemyHqCoordsStartingIndex);
+        ArrayList<MapLocation> newCoordsOfEnemyHqs = null;
+        for (int i = enemyHqCoordsStartingIndex; i < enemyHqCoordsStartingIndex + numOfEnemyHqsInArray; i++) {
+            //System.out.println("RAN THE FOR LOOP");
+            MapLocation Hq = intToLocation(rc, rc.readSharedArray(i));
+            //System.out.println(Hq);
+            coordsOfEnemyHqs.add(Hq);
+        }
+        //System.out.println("after: " + coordsOfEnemyHqs);
     }
 
     /**
