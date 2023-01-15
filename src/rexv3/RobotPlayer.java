@@ -1,9 +1,10 @@
-package danteplayer;
+package rexv3;
 
 import battlecode.common.*;
 
-import java.awt.*;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Random;
+import java.util.Set;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
