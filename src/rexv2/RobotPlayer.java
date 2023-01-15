@@ -117,10 +117,8 @@ public strictfp class RobotPlayer {
             WellInfo[] wells = rc.senseNearbyWells(-1);
             if (wells.length >= 1) {
                 for (WellInfo well : wells) {
-                    Direction closestToWell = hqLocation.directionTo(well.getMapLocation());
-                    MapLocation spawnCloseToWell = rc.getLocation().add(closestToWell);
-                    if (rc.canBuildRobot(RobotType.CARRIER, spawnCloseToWell)) {
-                        rc.buildRobot(RobotType.CARRIER, spawnCloseToWell);
+                    if (rc.canBuildRobot(RobotType.CARRIER, well.getMapLocation())) {
+                        rc.buildRobot(RobotType.CARRIER, well.getMapLocation());
                     }
                 }
             }
