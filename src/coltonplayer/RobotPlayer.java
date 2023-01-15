@@ -37,15 +37,16 @@ public strictfp class RobotPlayer {
     static boolean isScout = false;
     static int attackerIncrementer = 0;
     static MapLocation attackerIsAttackingThisThing;
+    static int numOfEnemyHqsInArray = 0;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
-     * [       0-8       ,   9   ,           10-17             ,    18    ,        19           ,          20-63                              ]
-     *      hq coords     #ofhqs       enemy hq coords      #ofenemyhqsInArray  AtckHQEvenlyCounter
+     * [     0-8     ,  9  ,     10-17       ,         18        ,         19          ,            20-63              ]
+     *   hq coords   #ofhqs  enemy hq coords  #ofenemyhqsInArray   AtckHQEvenlyCounter
      */
-    static int numOfEnemyHqsInArray = 0;
-
-
+    static int numOfHqsIndex = 9;
+    static int numOfEnemyHqsIndex = 18;
+    static int attackHqEvenlyCounterIndex = 19;
     /**
      * A random number generator.
      * We will use this RNG to make some random moves. The Random class is provided by the java.util.Random
@@ -141,13 +142,7 @@ public strictfp class RobotPlayer {
             rc.setIndicatorString("Its turn 1 baby");
             // turn 1 shenanigans
             // put this hq into the array with our hq's
-            int indicator = rc.readSharedArray(0);
-            if (indicator == 0) {
-                rc.writeSharedArray(9, rc.getRobotCount());
-            }
-            rc.writeSharedArray(indicator + 1, me.x);
-            rc.writeSharedArray(indicator + 2, me.y);
-            rc.writeSharedArray(0, indicator + 2);
+            storeOurHqToArray(rc, me);
 
             // get x,y coords of the middle of the map
             middlePos = new MapLocation((int) Math.round((double) rc.getMapWidth() / 2), (int) Math.round((double) rc.getMapWidth() / 2));
@@ -172,7 +167,7 @@ public strictfp class RobotPlayer {
             possibleCoordsOfEnemyHqsAlwaysThree.add(possibleEnemyHqFromRSym);
 
             amountOfHqsThisHqKnows = rc.readSharedArray(0) / 2;
-            amountOfHqsInThisGame = rc.readSharedArray(9);
+            amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
             //System.out.println("rc.getRobotCount() returns: " + rc.getRobotCount() + "\n");
 
 
@@ -243,74 +238,73 @@ public strictfp class RobotPlayer {
                 }
             }
         }
+//        if (turnCount == 2) {
+//            //this will now just always be how many hqs there actually are
+//            amountOfHqsThisHqKnows = rc.readSharedArray(0) / 2;
+//            //every hq other than the last one now needs to use symmetry to try to narrow options
+//            //this block uses all of our hqs to guess the symmetry
+//            for (int i = 0; i < amountOfHqsThisHqKnows; i++) {
+//                int ind = i * 2;
+//                MapLocation Hq = new MapLocation(rc.readSharedArray(ind + 1), rc.readSharedArray(ind + 2));
+//                coordsOfHqs.add(Hq);
+//            }
+//
+//            //symmetry only has a chance to be calculated if # of hqs > 1
+//            if (amountOfHqsThisHqKnows > 1) {
+//                // calculate the symmetry of the map
+//                // use first hq in list and compare against remaining in list
+//                MapLocation originalCheckerHqPos = coordsOfHqs.get(0);
+//
+//                boolean notVerticalSymmetry = false;
+//                boolean notHorizontalSymmetry = false;
+//                boolean notRotationalSymmetry = false;
+//                for (int i = 1; i < coordsOfHqs.size(); i++) {
+//                    MapLocation currentCheckerHqPos = coordsOfHqs.get(i);
+//                    //see if it fails being a vertical symmetry
+//
+//                    if (((originalCheckerHqPos.x < middlePos.x) && (currentCheckerHqPos.x > middlePos.x)) || (originalCheckerHqPos.x > middlePos.x) && (currentCheckerHqPos.x < middlePos.x)) {
+//                        //these two hqs are on opposite sides of the vertical symmetry line, so it CANNOT BE VERTICAL SYMMETRY
+//                        notVerticalSymmetry = true;
+//                        //remove the enemy hq calculated with vertical symmetry from the possible enemy hq spots
+//                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromVSym);
+//                    }
+//                    if (((originalCheckerHqPos.y < middlePos.y) && (currentCheckerHqPos.y > middlePos.y)) || ((originalCheckerHqPos.y > middlePos.y) && (currentCheckerHqPos.y < middlePos.y))) {
+//                        //these two hqs are on opposite sides of the horizontal symmetry line, so it CANNOT BE HORIZONTAL SYMMETRY
+//                        notHorizontalSymmetry = true;
+//                        //remove the enemy hq calculated with horizontal symmetry from the possible enemy hq spots
+//                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromHSym);
+//                    }
+//
+//                    if (true == false) {
+//                        // uhhhhh so how do eliminate rotational symmetry as an option
+//                        notRotationalSymmetry = true;
+//                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromRSym);
+//                    }
+//                }
+//
+//                // if the length of possibleCoordsOfEnemyHqs is 1, then we know the mf symmetry baby
+//                rc.setIndicatorString("SIZE: " + possibleCoordsOfEnemyHqs.size() + " Thing: " + possibleCoordsOfEnemyHqs.get(0));
+//                if (possibleCoordsOfEnemyHqs.size() == 1) {
+//                    MapLocation theFabledLocation = possibleCoordsOfEnemyHqs.get(0);
+//                    rc.setIndicatorDot(theFabledLocation, 0, 255, 0);
+//                    if (notHorizontalSymmetry && notVerticalSymmetry) theSymmetryIs = "R";
+//                    if (notVerticalSymmetry && notRotationalSymmetry) theSymmetryIs = "H";
+//                    if (notRotationalSymmetry && notHorizontalSymmetry) theSymmetryIs = "V";
+//                } else {
+//                    // these indicators are what the hq's have narrowed the possible enemy hq locations to
+//                    for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
+//                        rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
+//                        //System.out.println("Indicator dot placed");
+//                    }
+//                    //rc.setIndicatorString("I wrote my dots");
+//                }
+//            }
+//        }
         if (turnCount == 2) {
-            //this will now just always be how many hqs there actually are
-            amountOfHqsThisHqKnows = rc.readSharedArray(0) / 2;
-            //every hq other than the last one now needs to use symmetry to try to narrow options
-            //this block uses all of our hqs to guess the symmetry
-            for (int i = 0; i < amountOfHqsThisHqKnows; i++) {
-                int ind = i * 2;
-                MapLocation Hq = new MapLocation(rc.readSharedArray(ind + 1), rc.readSharedArray(ind + 2));
-                coordsOfHqs.add(Hq);
-            }
-
-            //symmetry only has a chance to be calculated if # of hqs > 1
-            if (amountOfHqsThisHqKnows > 1) {
-                // calculate the symmetry of the map
-                // use first hq in list and compare against remaining in list
-                MapLocation originalCheckerHqPos = coordsOfHqs.get(0);
-
-                boolean notVerticalSymmetry = false;
-                boolean notHorizontalSymmetry = false;
-                boolean notRotationalSymmetry = false;
-                for (int i = 1; i < coordsOfHqs.size(); i++) {
-                    MapLocation currentCheckerHqPos = coordsOfHqs.get(i);
-                    //see if it fails being a vertical symmetry
-
-                    if (((originalCheckerHqPos.x < middlePos.x) && (currentCheckerHqPos.x > middlePos.x)) || (originalCheckerHqPos.x > middlePos.x) && (currentCheckerHqPos.x < middlePos.x)) {
-                        //these two hqs are on opposite sides of the vertical symmetry line, so it CANNOT BE VERTICAL SYMMETRY
-                        notVerticalSymmetry = true;
-                        //remove the enemy hq calculated with vertical symmetry from the possible enemy hq spots
-                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromVSym);
-                    }
-                    if (((originalCheckerHqPos.y < middlePos.y) && (currentCheckerHqPos.y > middlePos.y)) || ((originalCheckerHqPos.y > middlePos.y) && (currentCheckerHqPos.y < middlePos.y))) {
-                        //these two hqs are on opposite sides of the horizontal symmetry line, so it CANNOT BE HORIZONTAL SYMMETRY
-                        notHorizontalSymmetry = true;
-                        //remove the enemy hq calculated with horizontal symmetry from the possible enemy hq spots
-                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromHSym);
-                    }
-
-                    if (true == false) {
-                        // uhhhhh so how do eliminate rotational symmetry as an option
-                        notRotationalSymmetry = true;
-                        possibleCoordsOfEnemyHqs.remove(possibleEnemyHqFromRSym);
-                    }
-                }
-
-                // if the length of possibleCoordsOfEnemyHqs is 1, then we know the mf symmetry baby
-                rc.setIndicatorString("SIZE: " + possibleCoordsOfEnemyHqs.size() + " Thing: " + possibleCoordsOfEnemyHqs.get(0));
-                if (possibleCoordsOfEnemyHqs.size() == 1) {
-                    MapLocation theFabledLocation = possibleCoordsOfEnemyHqs.get(0);
-                    rc.setIndicatorDot(theFabledLocation, 0, 255, 0);
-                    if (notHorizontalSymmetry && notVerticalSymmetry) theSymmetryIs = "R";
-                    if (notVerticalSymmetry && notRotationalSymmetry) theSymmetryIs = "H";
-                    if (notRotationalSymmetry && notHorizontalSymmetry) theSymmetryIs = "V";
-                } else {
-                    // these indicators are what the hq's have narrowed the possible enemy hq locations to
-                    for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
-                        rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
-                        //System.out.println("Indicator dot placed");
-                    }
-                    //rc.setIndicatorString("I wrote my dots");
-                }
-            }
-        }
-        if (turnCount == 3) {
             //theSymmetryIs, is either "V", "R", "H" if it was found, null if not
             if (theSymmetryIs != null) {
                 // oh my god we found the map symmetry just off of hq math lmaooooo
-                // here, each hq will add its enemy hq counterpart, we just gotta use the known map symmetry to figure
-                // out which of the three it is, and then we add it
+
                 if (theSymmetryIs.equals("H")) {
                     theActualEnemyHqCoords.add(possibleCoordsOfEnemyHqsAlwaysThree.get(0));
                 } else if (theSymmetryIs.equals("V")) {
@@ -318,23 +312,27 @@ public strictfp class RobotPlayer {
                 } else if (theSymmetryIs.equals("R")) {
                     theActualEnemyHqCoords.add(possibleCoordsOfEnemyHqsAlwaysThree.get(2));
                 }
-                numOfEnemyHqsInArray = rc.readSharedArray(18);
-                for (MapLocation anActualEnemyHqCoords : theActualEnemyHqCoords) {
-                    rc.writeSharedArray(((numOfEnemyHqsInArray*2)+10), anActualEnemyHqCoords.x);
-                    rc.writeSharedArray(((numOfEnemyHqsInArray*2)+10)+1, anActualEnemyHqCoords.y);
-                    rc.writeSharedArray(18, numOfEnemyHqsInArray+1);
-                }
-
                 //this if is always true if code reaches here but added for context
                 if (theActualEnemyHqCoords.size() > 0) {
                     enemyHqCoordsLocated = true;
                 }
+
+                numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsIndex);
+                for (MapLocation anActualEnemyHqCoords : theActualEnemyHqCoords) {
+                    rc.writeSharedArray(((numOfEnemyHqsInArray*2)+10), anActualEnemyHqCoords.x);
+                    rc.writeSharedArray(((numOfEnemyHqsInArray*2)+10)+1, anActualEnemyHqCoords.y);
+                    rc.writeSharedArray(numOfEnemyHqsIndex, numOfEnemyHqsInArray+1);
+                }
+
+
             }
         }
 
 
         middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
         // Pick a direction to build in.
+
+        //what map locations we want to try spawning an attacker in, starting with most wanted, ending with the least wanted
         MapLocation[] attackerSpawnLocs = {
                 me.add(me.directionTo(middlePos)),
                 me.add(me.directionTo(middlePos).rotateRight()),
@@ -343,12 +341,14 @@ public strictfp class RobotPlayer {
                 me.add(me.directionTo(middlePos).rotateLeft().rotateLeft()),
         };
 
+        //what map locations we want to try spawning a carrier in, starting with most wanted, ending with the least wanted
         MapLocation[] carrierSpawnLocs = new MapLocation[directions.length];
         for (int i = 0; i < directions.length; i++) {
             Direction direction = directions[i];
             carrierSpawnLocs[i] = me.add(direction);
         }
 
+        //build attackers and carriers
         if (attackersThisHqHasBuilt < 3) {
             //build an attacker
             spawnADude(rc, attackerSpawnLocs, RobotType.LAUNCHER);
@@ -365,11 +365,6 @@ public strictfp class RobotPlayer {
                 spawnADude(rc, carrierSpawnLocs, RobotType.CARRIER);
             }
         }
-
-
-
-
-
 
 //        //MapLocation attackerSpawnLocation = me.add(me.directionTo(middlePos)).add(me.directionTo(middlePos));
 //        MapLocation attackerSpawnLocation = me.add(me.directionTo(middlePos));
@@ -419,17 +414,7 @@ public strictfp class RobotPlayer {
 //                rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationClose);
 //            }
 //        }
-
-        System.out.println("here");
-        ArrayList<String> arrayContents= new ArrayList<String>();
-        int counter = 0;
-        while (counter < GameConstants.SHARED_ARRAY_LENGTH) {
-            arrayContents.add(String.valueOf(rc.readSharedArray(counter)));
-            counter++;
-        }
-
-        System.out.println("also here");
-        System.out.println(arrayContents);
+        // printSharedArray(rc);
 
     }
 
@@ -472,16 +457,6 @@ public strictfp class RobotPlayer {
                 }
             }
         }
-
-        // Occasionally try out the carriers attack
-//        if (rng.nextInt(20) == 1) {
-//            RobotInfo[] enemyRobots = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
-//            if (enemyRobots.length > 0) {
-//                if (rc.canAttack(enemyRobots[0].location)) {
-//                    rc.attack(enemyRobots[0].location);
-//                }
-//            }
-//        }
         
         // If we can see a well, move towards it
         int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
@@ -576,22 +551,25 @@ public strictfp class RobotPlayer {
      */
     static void runLauncher(RobotController rc) throws GameActionException {
         middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
-        amountOfHqsInThisGame = rc.readSharedArray(9);
+        amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
 
-        if (rc.readSharedArray(18) != 0) {
+        if (rc.readSharedArray(numOfEnemyHqsIndex) != 0) {
             enemyHqCoordsLocated = true;
         }
         if (turnCount == 1) {
             //middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
-            rc.writeSharedArray(19, rc.readSharedArray(19) + 1);
+            rc.writeSharedArray(attackHqEvenlyCounterIndex, rc.readSharedArray(attackHqEvenlyCounterIndex) + 1);
         }
         int modNumber = amountOfHqsInThisGame;
         // get the AttackHqEvenlyCounter, and mod it by how many enemy hqs there are
-        int attackHqEvenlyCounter = rc.readSharedArray(19) % modNumber;
+        int attackHqEvenlyCounter = rc.readSharedArray(attackHqEvenlyCounterIndex) % modNumber;
         MapLocation me = rc.getLocation();
 
         // on turn 3, attackers can go to a hq if we know symmetry
-        //rc.setIndicatorString(String.valueOf(rc.readSharedArray(10)));
+        // rc.setIndicatorString(String.valueOf(rc.readSharedArray(10)));
+
+        //use round number for random number
+
 
         int ohBoy = rng.nextInt(69420) % modNumber;
         if ((rc.getRoundNum() == 3) || (turnCount == 1)) {
@@ -602,105 +580,100 @@ public strictfp class RobotPlayer {
                 attackerIsAttackingThisThing = new MapLocation(rc.readSharedArray(enemyHqX), rc.readSharedArray(enemyHqY));
             }
         }
-
-
-        // can you attack? then attack!
-        int radius = rc.getType().actionRadiusSquared;
-        Team opponent = rc.getTeam().opponent();
-        RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
-        if (enemies.length > 0) {
-            MapLocation toAttack = enemies[0].location;
-            if (rc.canAttack(toAttack)) {
-                //rc.setIndicatorString("Merked this poor disabled kid");
-                rc.attack(toAttack);
-            }
-        }
+        // try attacking before movement
+        attackerAttackAroundRandomly(rc);
 
         // handle movement
         rc.setIndicatorString(String.valueOf(enemyHqCoordsLocated));
         if (attackerIsAttackingThisThing != null) {
-            rc.setIndicatorString("attacking hq " + attackerIsAttackingThisThing + " because " + ohBoy);
-            if (me.isAdjacentTo(attackerIsAttackingThisThing)) {
-                //we are right beside the thing we wanna attack, just vibeeeeee
-            } else {
-                // we aren't by the thing we wanna attack, move to it
-
-                // if we have enemy hq, move to it
-                // every attacker from this hq will just beeline its symmetrical enemy hq partner
-                Direction dir = me.directionTo(attackerIsAttackingThisThing);
-                Direction[] moveDirs = new Direction[5];
-                moveDirs[0] = dir;
-                moveDirs[1] = dir.rotateRight();
-                moveDirs[2] = dir.rotateLeft();
-                moveDirs[3] = dir.rotateRight().rotateRight();
-                moveDirs[4] = dir.rotateLeft().rotateLeft();
-
-                for (int i = 0; i < moveDirs.length; i++) {
-                    Direction moveDir = moveDirs[i];
-                    if (rc.canMove(moveDir)) {
-                        rc.move(moveDir);
-                        break;
-                    }
-                    if (i == moveDirs.length - 1) {
-                        Direction randomDir = directions[rng.nextInt(directions.length)];
-                        if (rc.canMove(randomDir)) {
-                            rc.move(randomDir);
-                            //rc.setIndicatorString("Moving " + dir);
-                        }
-                    }
-                }
-
-            }
+            attackerMoveToLocation(rc, me);
         } else {
-            // if we don't have anything we wanna attack rn, move randomly
-            Direction randomDir = directions[rng.nextInt(directions.length)];
-            if (rc.canMove(randomDir)) {
-                rc.move(randomDir);
-                //rc.setIndicatorString("Moving " + dir);
-            }
+            moveRandomly(rc);
         }
+        //try attacking after moving
+        if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT) {
+            attackerAttackAroundRandomly(rc);
+        }
+
     }
-//        // if we are not at the middle
-//        // if (!(me.isAdjacentTo(middlePos)) && !launcherBeenToMiddle) {
-//        if (!(me.isAdjacentTo(middlePos))) {
-//            // try to move to middle
-//            if (rc.canMove(rc.getLocation().directionTo(middlePos))) {
-//                rc.move(rc.getLocation().directionTo(middlePos));
-//                rc.setIndicatorString("Moving to middle");
-//            } else {
-//                // try to move randomly.
-//                Direction dir = directions[rng.nextInt(directions.length)];
-//                if (rc.canMove(dir)) {
-//                    rc.setIndicatorString("Tried moving to middle, moving randomly instead");
-//                    rc.move(dir);
-//                }
-//            }
-//        } else {
-//            // we are near the middle
-//            launcherBeenToMiddle = true;
-//            // try to move randomly.
-//            Direction dir = directions[rng.nextInt(directions.length)];
-//            if (rc.canMove(dir)) {
-//                rc.setIndicatorString("Moving very randomly");
-//                rc.move(dir);
-//            }
-//        }
 
 /*
 ------------------------------------------------------------------------------------------------------------------------
                                         GENERAL FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
 */
-    
+    /**
+     * prints the shared array
+     * @param rc RobotController
+     * @throws GameActionException from readSharedArray
+     */
+    static void printSharedArray(RobotController rc) throws GameActionException {
+        ArrayList<String> arrayContents= new ArrayList<String>();
+        int counter = 0;
+        while (counter < GameConstants.SHARED_ARRAY_LENGTH) {
+            arrayContents.add(String.valueOf(rc.readSharedArray(counter)));
+            counter++;
+        }
+        System.out.println(arrayContents);
+    }
 
+    /**
+     * puts a map location to an integer
+     * @param rc RobotController
+     * @param location MapLocation to convert
+     * @return location in integer form
+     */
+    static int locationToInt(RobotController rc, MapLocation location) {
+        if (location == null) return 0;
+        return 1 + location.x + location.y * rc.getMapWidth();
+    }
 
+    /**
+     * puts an integer to a map location
+     * @param rc RobotController
+     * @param integerLocation integer to convert
+     * @return integer in location form
+     */
+    static MapLocation intToLocation(RobotController rc, int integerLocation) {
+        if (integerLocation == 0) return null;
+        integerLocation--;
+        return new MapLocation(integerLocation % rc.getMapWidth(), integerLocation / rc.getMapWidth());
+    }
 
+    /**
+     * moves a robot randomly
+     * @param rc
+     * @throws GameActionException
+     */
+    static void moveRandomly(RobotController rc) throws GameActionException {
+        Direction randomDir = directions[rng.nextInt(directions.length)];
+        if (rc.canMove(randomDir)) {
+            rc.move(randomDir);
+            //rc.setIndicatorString("Moving " + dir);
+        }
+    }
 
 /*
 ------------------------------------------------------------------------------------------------------------------------
                                           HQ FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
 */
+
+    /**
+     * write this hq location to the array
+     * @param rc RobotController
+     * @param me this robots location
+     * @throws GameActionException from read/write to array
+     */
+    static void storeOurHqToArray(RobotController rc, MapLocation me) throws GameActionException {
+        int indicator = rc.readSharedArray(0);
+        if (indicator == 0) {
+            rc.writeSharedArray(numOfHqsIndex, rc.getRobotCount());
+        }
+        rc.writeSharedArray(indicator + 1, me.x);
+        rc.writeSharedArray(indicator + 2, me.y);
+        rc.writeSharedArray(0, indicator + 2);
+    }
 
     /**
      * Using an array of map locations, spawn a person as close to that map location as possible
@@ -711,7 +684,7 @@ public strictfp class RobotPlayer {
      * @throws GameActionException if buildRobot fails drastically (it won't dw)
      */
     static void spawnADude(RobotController rc, MapLocation[] spawnLocations, RobotType robotType) throws GameActionException {
-        //
+        // will always spawn a dude when fully completed
         for (int i = 0; i < spawnLocations.length; i++) {
             MapLocation spawnLoc = spawnLocations[i];
             rc.setIndicatorString(spawnLoc.toString());
@@ -742,12 +715,71 @@ public strictfp class RobotPlayer {
 
 
 
-
 /*
 ------------------------------------------------------------------------------------------------------------------------
                                         ATTACKER FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
 */
+
+    /**
+     * attacker tries attacking anything around them
+     * @param rc RobotController
+     * @throws GameActionException from senseNearbyRobots
+     */
+    static void attackerAttackAroundRandomly(RobotController rc) throws GameActionException {
+        // can you attack? then attack!
+        int radius = rc.getType().actionRadiusSquared;
+        Team opponent = rc.getTeam().opponent();
+        RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
+        if (enemies.length > 0) {
+            MapLocation toAttack = enemies[0].location;
+            if (rc.canAttack(toAttack)) {
+                //rc.setIndicatorString("Merked this poor disabled kid");
+                rc.attack(toAttack);
+            }
+        }
+    }
+
+    /**
+     * moves attacker towards a location
+     * @param rc RobotController
+     * @param me current location
+     * @throws GameActionException from move()
+     */
+    static void attackerMoveToLocation(RobotController rc, MapLocation me) throws GameActionException {
+
+        //rc.setIndicatorString("attacking hq " + attackerIsAttackingThisThing + " because " + ohBoy);
+        if (me.isAdjacentTo(attackerIsAttackingThisThing)) {
+            //we are right beside the thing we wanna attack, just vibeeeeee
+        } else {
+            // we aren't by the thing we wanna attack, move to it
+
+            // if we have enemy hq, move to it
+            // every attacker from this hq will just beeline its symmetrical enemy hq partner
+            Direction dir = me.directionTo(attackerIsAttackingThisThing);
+            Direction[] moveDirs = new Direction[5];
+            moveDirs[0] = dir;
+            moveDirs[1] = dir.rotateRight();
+            moveDirs[2] = dir.rotateLeft();
+            moveDirs[3] = dir.rotateRight().rotateRight();
+            moveDirs[4] = dir.rotateLeft().rotateLeft();
+
+            for (int i = 0; i < moveDirs.length; i++) {
+                Direction moveDir = moveDirs[i];
+                if (rc.canMove(moveDir)) {
+                    rc.move(moveDir);
+                    break;
+                }
+                if (i == moveDirs.length - 1) {
+                    Direction randomDir = directions[rng.nextInt(directions.length)];
+                    if (rc.canMove(randomDir)) {
+                        rc.move(randomDir);
+                        //rc.setIndicatorString("Moving " + dir);
+                    }
+                }
+            }
+        }
+    }
 
 }
 
