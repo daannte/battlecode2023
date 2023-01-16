@@ -1,9 +1,7 @@
-package coltonplayer;
+package coltonplayertooptimize;
 
 import battlecode.common.*;
 
-import java.awt.*;
-import java.lang.reflect.Array;
 import java.util.*;
 
 /**
