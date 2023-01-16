@@ -128,9 +128,9 @@ public strictfp class RobotPlayer {
         }
         // Spawn three launchers to attack the other team
         if (turnCount <= 3) spawnRobot(rc, RobotType.LAUNCHER, spawnLocation);
-//        if (rc.canBuildAnchor(Anchor.STANDARD) && turnCount > 50) {
-//            rc.buildAnchor(Anchor.STANDARD);
-//        }
+        if (rc.canBuildAnchor(Anchor.STANDARD) && turnCount > 50) {
+            rc.buildAnchor(Anchor.STANDARD);
+        }
         if (collectAd && !adWells.isEmpty()) {
             spawnRobot(rc, RobotType.CARRIER, hqLocation.add(hqLocation.directionTo(adWells.iterator().next())));
             collectAd = false;
@@ -156,7 +156,6 @@ public strictfp class RobotPlayer {
             hasAnchor = true;
         }
         // If carrier has an anchor go try and place it, else go get resources
-        lookForWellType(rc);
         if(closestWell == null) getClosestWell(rc);
         scanIslands(rc);
 
@@ -203,39 +202,48 @@ public strictfp class RobotPlayer {
         middleOfMap = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2)
                 , (int) Math.round( (double) rc.getMapWidth() / 2));
 
-        Team opponent = rc.getTeam().opponent();
         int radius = rc.getType().actionRadiusSquared;
+        Team opponent = rc.getTeam().opponent();
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
+        int lowestHealth = 100;
         int smallestDistance = 100;
         RobotInfo target = null;
         if (enemies.length > 0) {
             for (RobotInfo enemy: enemies){
-                if (enemy.getType() == RobotType.LAUNCHER) {
-                    int enemyDistance = enemy.location.distanceSquaredTo(rc.getLocation());
-                    if (enemyDistance < smallestDistance) {
+                // we cannot attack a headquarters!!! So make sure we don't even consider them!!!
+                if (enemy.getType() != RobotType.HEADQUARTERS) {
+                    int enemyHealth = enemy.getHealth();
+                    int enemyDistance = enemy.getLocation().distanceSquaredTo(rc.getLocation());
+                    if (enemyHealth < lowestHealth) {
                         target = enemy;
+                        lowestHealth = enemyHealth;
                         smallestDistance = enemyDistance;
+                    } else if (enemyHealth == lowestHealth) {
+                        if (enemyDistance < smallestDistance) {
+                            target = enemy;
+                            smallestDistance = enemyDistance;
+                        }
                     }
-                } else target = enemy;
+                }
             }
         }
         if (target != null){
-            if (rc.canAttack(target.location)) rc.attack(target.location);
+            if (rc.canAttack(target.getLocation()))
+                rc.attack(target.getLocation());
         } else {
-            moveTo(rc, middleOfMap);
-            if (rc.getLocation().equals(middleOfMap)) moveRandomDir(rc);
-        }
+            if (rc.getLocation().equals(middleOfMap)) {
+                RobotInfo[] visibleEnemies = rc.senseNearbyRobots(-1, opponent);
+                for (RobotInfo enemy : visibleEnemies) {
+                    if (enemy.getType() == RobotType.HEADQUARTERS) {
+                        moveTo(rc, enemy.getLocation());
+                    }
+                    else if (enemy.getType() != RobotType.HEADQUARTERS) {
+                        moveTo(rc, enemy.getLocation());
+                    }
+                }
+            } else moveTo(rc, middleOfMap);
 
-        RobotInfo[] visibleEnemies = rc.senseNearbyRobots(-1, opponent);
-        for (RobotInfo enemy : visibleEnemies) {
-            if (enemy.getType() == RobotType.HEADQUARTERS) {
-                moveTo(rc, enemy.getLocation());
-            }
-            else if (enemy.getType() != RobotType.HEADQUARTERS) {
-                moveTo(rc, enemy.getLocation());
-            }
         }
-
     }
     /**
      * Spawn a robot on the map
@@ -288,12 +296,12 @@ public strictfp class RobotPlayer {
             for (int i = 0; i < 8; i++) {
                 if (rc.canMove(currentDirection)) {
                     rc.move(currentDirection);
-                    if(rc.isMovementReady()) {
-                        if(rc.canMove(currentDirection)) rc.move(currentDirection);
+                    if (rc.isMovementReady()) {
+                        if (rc.canMove(currentDirection)) rc.move(currentDirection);
                     }
-                    currentDirection = currentDirection.rotateRight();
+                    currentDirection = currentDirection.rotateLeft();
                     break;
-                } else currentDirection = currentDirection.rotateLeft();
+                } else currentDirection = currentDirection.rotateRight();
             }
         }
     }
@@ -310,7 +318,7 @@ public strictfp class RobotPlayer {
             }
         }
     }
-    static void getClosestWell(RobotController rc) {
+    static void getClosestWell(RobotController rc) throws GameActionException {
         MapLocation me = rc.getLocation();
         WellInfo[] wells = rc.senseNearbyWells();
         if (wells.length >= 1) {

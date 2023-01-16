@@ -157,22 +157,19 @@ public strictfp class RobotPlayer {
             hasAnchor = true;
         }
         // If carrier has an anchor go try and place it, else go get resources
-        lookForWellType(rc);
         scanIslands(rc);
         if (hasCollectedMana) {
             getClosestAdWell(rc);
             if (closestWell != null && rc.canCollectResource(closestWell, -1)) {
                 rc.collectResource(closestWell, -1);
-                if (rc.getResourceAmount(ResourceType.ADAMANTIUM) == GameConstants.CARRIER_CAPACITY) {
-                    hasCollectedMana = false;
-                }
             }
             if (totalResources(rc) == GameConstants.CARRIER_CAPACITY) {
                 if (rc.getLocation().isAdjacentTo(headquarter)) {
                     for (ResourceType resourceType : ResourceType.values()) {
                         if (rc.canTransferResource(headquarter, resourceType, rc.getResourceAmount(resourceType))) {
                             rc.transferResource(headquarter, resourceType, rc.getResourceAmount(resourceType));
-
+                            hasCollectedMana = false;
+                            closestWell = null;
                         }
                     }
                 } else {
@@ -185,15 +182,14 @@ public strictfp class RobotPlayer {
             getClosestManaWell(rc);
             if (closestWell != null && rc.canCollectResource(closestWell, -1)){
                 rc.collectResource(closestWell, -1);
-                if (rc.getResourceAmount(ResourceType.MANA) == GameConstants.CARRIER_CAPACITY) {
-                    hasCollectedMana = true;
-                }
             }
             if (totalResources(rc) == GameConstants.CARRIER_CAPACITY) {
                 if (rc.getLocation().isAdjacentTo(headquarter)) {
                     for (ResourceType resourceType : ResourceType.values()) {
                         if (rc.canTransferResource(headquarter, resourceType, rc.getResourceAmount(resourceType))) {
                             rc.transferResource(headquarter, resourceType, rc.getResourceAmount(resourceType));
+                            hasCollectedMana = true;
+                            closestWell = null;
                         }
                     }
                 } else {
@@ -364,7 +360,7 @@ public strictfp class RobotPlayer {
     }
     static void getClosestWell(RobotController rc) throws GameActionException {
         MapLocation me = rc.getLocation();
-        WellInfo[] wells = rc.senseNearbyWells(-1, ResourceType.ADAMANTIUM);
+        WellInfo[] wells = rc.senseNearbyWells();
         if (wells.length >= 1) {
             closestWell = wells[0].getMapLocation();
             for (WellInfo well : wells) {
