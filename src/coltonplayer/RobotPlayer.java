@@ -40,6 +40,7 @@ public strictfp class RobotPlayer {
     static MapLocation attackerIsAttackingThisLocation;
     static int numOfEnemyHqsInArray = 0;
     static int testCounter = 0;
+    static boolean scoutResultFromPossibleHqLocation;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
@@ -550,6 +551,22 @@ public strictfp class RobotPlayer {
             if (attackerIsAttackingThisLocation != null) {
                 // moves the attacker closer to this location target
                 attackerMoveToLocation(rc, me);
+                if (rc.readSharedArray(symIndex) == 0) {
+                    if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, RobotType.LAUNCHER.visionRadiusSquared)) {
+                        // if we are at a hq location, and it's only a possible hq location, we need to report our findings
+                        // back to a hq, so we can guess the symmetry and know for sure where the other hqs are
+                        rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
+                        RobotInfo possibleHq = rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
+                        if (possibleHq == null) {
+                            // no hq here
+                            scoutResultFromPossibleHqLocation = false;
+                        } else {
+                            // hq here
+                            scoutResultFromPossibleHqLocation = true;
+                        }
+                        // now we want to go back to the closest hq
+                    }
+                }
             } else {
                 moveRandomly(rc);
             }
@@ -936,7 +953,7 @@ public strictfp class RobotPlayer {
      */
     static void attackerMoveToLocation(RobotController rc, MapLocation me) throws GameActionException {
         if (me.isAdjacentTo(attackerIsAttackingThisLocation)) {
-            //we are right beside the thing we wanna attack, just vibeeeeee
+            // vibe
         } else {
             // we aren't by the thing we wanna attack, move to it
 
