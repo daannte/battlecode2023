@@ -39,6 +39,7 @@ public strictfp class RobotPlayer {
     static int attackerIncrementer = 0;
     static MapLocation attackerIsAttackingThisLocation;
     static int numOfEnemyHqsInArray = 0;
+    static int testCounter = 0;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
@@ -195,9 +196,10 @@ public strictfp class RobotPlayer {
             }
             //System.out.println(numOfEnemyHqsInArray);
             // write the current guesses to the array so that launchers can go to one of them, even if these change on round 3
-            numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
             //System.out.println(numOfEnemyHqsInArray);
+            //System.out.println(possibleCoordsOfEnemyHqs);
             for (MapLocation anEnemyHqCoords : possibleCoordsOfEnemyHqs) {
+                numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
                 rc.writeSharedArray((enemyHqCoordsStartingIndex + numOfEnemyHqsInArray), locationToInt(rc, anEnemyHqCoords));
                 rc.writeSharedArray(numOfEnemyHqsInArrayIndex, numOfEnemyHqsInArray + 1);
             }
@@ -214,9 +216,9 @@ public strictfp class RobotPlayer {
             // write every enemy hq that we have guessed a location for into the array. If we guessed the symmetry
             // earlier, then each hq is only writing one location (the actual location). Otherwise, we are writing 2 or
             // more guesses for the enemy hq location.
-            numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
             //System.out.println(numOfEnemyHqsInArray);
             for (MapLocation anEnemyHqCoords : possibleCoordsOfEnemyHqs) {
+                numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
                 rc.writeSharedArray((enemyHqCoordsStartingIndex + numOfEnemyHqsInArray), locationToInt(rc, anEnemyHqCoords));
                 rc.writeSharedArray(numOfEnemyHqsInArrayIndex, numOfEnemyHqsInArray + 1);
             }
@@ -232,6 +234,8 @@ public strictfp class RobotPlayer {
                 }
             }
         }
+//        if (testCounter < 10) printSharedArray(rc);
+//        testCounter++;
 
         middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
 
@@ -469,7 +473,10 @@ public strictfp class RobotPlayer {
         MapLocation me = rc.getLocation();
 
         // on every turn, the attackers get an array of all the enemy hq locations in the array
+        //System.out.println("Before: " + coordsOfEnemyHqs);
+        //printSharedArray(rc);
         giveCallingRobotAListOfEnemyHqs(rc);
+        //System.out.println("After: " + coordsOfEnemyHqs);
         //System.out.println(coordsOfEnemyHqs);
 
         // if # of our hqs == # of enemy hq locations in the array, those probable enemy locations are the real deal!
@@ -511,13 +518,25 @@ public strictfp class RobotPlayer {
         //printSharedArray(rc);
         //System.out.println("coords of enemy hqs: " + coordsOfEnemyHqs);
         MapLocation closestEnemyHq = coordsOfEnemyHqs.get(0);
+        StringBuilder indString = new StringBuilder();
+//        indString.append(closestEnemyHq);
+//        indString.append(" ");
         for (MapLocation coordsOfEnemyHq : coordsOfEnemyHqs) {
+//            indString.append(coordsOfEnemyHq);
+//            indString.append(" ");
+//            indString.append(me.distanceSquaredTo(coordsOfEnemyHq));
+//            indString.append(" ");
             if (me.distanceSquaredTo(coordsOfEnemyHq) < me.distanceSquaredTo(closestEnemyHq)) {
                 closestEnemyHq = coordsOfEnemyHq;
+                //indString.append(me.distanceSquaredTo(closestEnemyHq));
             }
         }
         attackerIsAttackingThisLocation = closestEnemyHq;
-        rc.setIndicatorString("Attacking closest hq which is at " + closestEnemyHq);
+        indString.append(" Atck ");
+        indString.append(closestEnemyHq);
+        indString.append(" | ");
+        indString.append(me.distanceSquaredTo(closestEnemyHq));
+        rc.setIndicatorString(String.valueOf(indString));
 
 
 
@@ -587,13 +606,14 @@ public strictfp class RobotPlayer {
      * @throws GameActionException from readSharedArray
      */
     static void printSharedArray(RobotController rc) throws GameActionException {
-        ArrayList<String> arrayContents= new ArrayList<String>();
+        StringBuilder sharedArray = new StringBuilder();
         int counter = 0;
         while (counter < GameConstants.SHARED_ARRAY_LENGTH) {
-            arrayContents.add(String.valueOf(rc.readSharedArray(counter)));
+            sharedArray.append((rc.readSharedArray(counter)));
+            sharedArray.append(", ");
             counter++;
         }
-        System.out.println(arrayContents);
+        System.out.println(sharedArray);
     }
 
     /**
@@ -782,12 +802,7 @@ public strictfp class RobotPlayer {
         if (indicator == 1) {
             rc.writeSharedArray(numOfHqsIndex, rc.getRobotCount());
         }
-
         rc.writeSharedArray(hqStoringIndicatorIndex, indicator);
-
-//        rc.writeSharedArray(indicator + 1, me.x);
-//        rc.writeSharedArray(indicator + 2, me.y);
-//        rc.writeSharedArray(0, indicator + 2);
     }
 
     /**
