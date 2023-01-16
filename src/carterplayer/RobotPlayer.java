@@ -135,12 +135,8 @@ public strictfp class RobotPlayer {
                 carrierSpawnLocationClose = me.add(closestToWell);
                 carrierSpawnLocationFar = carrierSpawnLocationClose.add(closestToWell);
             }
-            if (turnCount <= 3) {
-                if (rc.canBuildRobot(RobotType.LAUNCHER, attackerSpawnLocation)){
-                    rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
-                    break;
-                }
-            } else if (turnCount <= 7) {
+
+            if (turnCount <= 7) {
                 if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationFar)) {
                     rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationFar);
                     break;
