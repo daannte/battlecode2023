@@ -314,7 +314,7 @@ public strictfp class RobotPlayer {
                 }
             }
         }
-        else {
+        else {//aaa
             dir = Direction.SOUTH;
             if (!rc.canMove(dir)){
                 dir = Direction.EAST;
