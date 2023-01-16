@@ -42,15 +42,17 @@ public strictfp class RobotPlayer {
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
-     * [0 ,    1-4     ,  5  ,       6-17       ,         18        ,         19          ,            20-63              ]
-     * ind  hq coords  #ofhqs  enemy hq coords   #ofenemyhqsInArray   AtckHQEvenlyCounter
+     * [0 ,    1-4     ,  5  ,       6-17       ,         18        ,         19          ,   20   ,         20-63              ]
+     * ind  hq coords  #ofhqs  enemy hq coords   #ofenemyhqsInArray   AtckHQEvenlyCounter    sym
      */
     static final int hqStoringIndicatorIndex = 0;
     static final int hqCoordsStartingIndex = 1;
     static final int numOfHqsIndex = 5;
     static final int enemyHqCoordsStartingIndex = 6;
+    static final int enemyHqCoordsEndingIndex = 17;
     static final int numOfEnemyHqsInArrayIndex = 18;
     static final int attackHqEvenlyCounterIndex = 19;
+    static final int symIndex = 20;
     /**
      * A random number generator.
      * We will use this RNG to make some random moves. The Random class is provided by the java.util.Random
@@ -154,23 +156,34 @@ public strictfp class RobotPlayer {
 
             middlePos = new MapLocation((int) Math.round((double) rc.getMapWidth() / 2), (int) Math.round((double) rc.getMapWidth() / 2));
 
-            // put the
+            // put the enemy hq coords to possibleCoordsOfEnemyHqs and possibleCoordsOfEnemyHqsAlwaysThree
             addEnemyHqCoordsToTheStaticLists(width, height, me);
 
-            //amountOfHqsThisHqKnows = rc.readSharedArray(0) / 2;
+            // amountOfHqsThisHqKnows = rc.readSharedArray(0) / 2;
             amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
-            //System.out.println("rc.getRobotCount() returns: " + rc.getRobotCount() + "\n");
+            // System.out.println("rc.getRobotCount() returns: " + rc.getRobotCount() + "\n");
 
         }
 
         if (rc.getRoundNum() == 2) {
             // try and guess the symmetry of the map on this turn. If you can't, then add a bunch of possible enemy hq
+
             giveCallingRobotAListOfOurHqs(rc);
 
             // guess the symmetry based on only our starting hq positions
             ArrayList<String> syms = guessSymmetryBasedOnOurInitialHqLocations();
-            rc.setIndicatorString(syms.toString());
+            // rc.setIndicatorString(syms.toString());
+
+            if (syms.size() > 1) {
+                //symmetry wasn't guessed just based on our initialHqPositions, so try another way
+                System.out.println("Before" + syms);
+                syms = guessSymmetryBasedOnEnemyHqsWeCanSee(rc, syms);
+                System.out.println("After" + syms);
+            }
+
             if (syms.size() == 1) {
+                enemyHqCoordsLocated = true;
+                writeTheSymToSharedArray(rc, syms.get(0));
                 // we found the symmetry
                 MapLocation theFabledLocation = possibleCoordsOfEnemyHqs.get(0);
                 rc.setIndicatorDot(theFabledLocation, 0, 255, 0);
@@ -180,24 +193,43 @@ public strictfp class RobotPlayer {
                     rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
                 }
             }
+            //System.out.println(numOfEnemyHqsInArray);
+            // write the current guesses to the array so that launchers can go to one of them, even if these change on round 3
+            numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
+            //System.out.println(numOfEnemyHqsInArray);
+            for (MapLocation anEnemyHqCoords : possibleCoordsOfEnemyHqs) {
+                rc.writeSharedArray((enemyHqCoordsStartingIndex + numOfEnemyHqsInArray), locationToInt(rc, anEnemyHqCoords));
+                rc.writeSharedArray(numOfEnemyHqsInArrayIndex, numOfEnemyHqsInArray + 1);
+            }
+        }
+        if (rc.getRoundNum() == 3) {
+            if ((rc.getID() == 2) || rc.getID() == 3) clearEnemyHqsFromTheSharedArray(rc);
 
-            // if we found map symmetry, give each hq its counterpart enemy hq coords, will prob be useful later
-            // (stored in thisHqsEnemyHqMirror)
-            if (syms.size() == 1) {
-                getThisHqsMirroredEnemyHqLocation(syms.get(0));
+            // if a hq managed to guess the sym, and we haven't updated our possible hq spots with that information, do it!!!!!
+            if ((rc.readSharedArray(symIndex) != 0) && (possibleCoordsOfEnemyHqs.size() > 1)) {
+                possibleCoordsOfEnemyHqs.clear();
+                possibleCoordsOfEnemyHqs.add(possibleCoordsOfEnemyHqsAlwaysThree.get(rc.readSharedArray(symIndex) - 1));
             }
 
             // write every enemy hq that we have guessed a location for into the array. If we guessed the symmetry
             // earlier, then each hq is only writing one location (the actual location). Otherwise, we are writing 2 or
             // more guesses for the enemy hq location.
             numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
+            //System.out.println(numOfEnemyHqsInArray);
             for (MapLocation anEnemyHqCoords : possibleCoordsOfEnemyHqs) {
                 rc.writeSharedArray((enemyHqCoordsStartingIndex + numOfEnemyHqsInArray), locationToInt(rc, anEnemyHqCoords));
                 rc.writeSharedArray(numOfEnemyHqsInArrayIndex, numOfEnemyHqsInArray + 1);
-
-//                rc.writeSharedArray(((numOfEnemyHqsInArray*2)+10), anEnemyHqCoords.x);
-//                rc.writeSharedArray(((numOfEnemyHqsInArray*2)+10)+1, anEnemyHqCoords.y);
-//                rc.writeSharedArray(numOfEnemyHqsInArrayIndex, numOfEnemyHqsInArray+1);
+            }
+            if (rc.readSharedArray(symIndex) != 0) {
+                enemyHqCoordsLocated = true;
+                // we found the symmetry
+                MapLocation theFabledLocation = possibleCoordsOfEnemyHqs.get(0);
+                rc.setIndicatorDot(theFabledLocation, 0, 255, 0);
+            } else {
+                // didn't find the symmetry
+                for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
+                    rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
+                }
             }
         }
 
@@ -293,7 +325,6 @@ public strictfp class RobotPlayer {
 //            }
 //        }
         // printSharedArray(rc);
-
     }
 
     /**
@@ -431,12 +462,15 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runLauncher(RobotController rc) throws GameActionException {
+
         middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
         amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
         numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
+        MapLocation me = rc.getLocation();
 
         // on every turn, the attackers get an array of all the enemy hq locations in the array
         giveCallingRobotAListOfEnemyHqs(rc);
+        //System.out.println(coordsOfEnemyHqs);
 
         // if # of our hqs == # of enemy hq locations in the array, those probable enemy locations are the real deal!
         if (amountOfHqsInThisGame == numOfEnemyHqsInArray) {
@@ -455,7 +489,6 @@ public strictfp class RobotPlayer {
         int modNumber = amountOfHqsInThisGame;
         // get the AttackHqEvenlyCounter, and mod it by how many enemy hqs there are
         int attackHqEvenlyCounter = rc.readSharedArray(attackHqEvenlyCounterIndex) % modNumber;
-        MapLocation me = rc.getLocation();
 
         //use round number for random number
 
@@ -474,8 +507,9 @@ public strictfp class RobotPlayer {
 //            // use this if we want to split up every attacker in the game evenly among the enemy hq positions
 //            attackerIsAttackingThisLocation = intToLocation(rc, rc.readSharedArray(replaceThis + enemyHqCoordsStartingIndex));
 //        }
-        printSharedArray(rc);
-        System.out.println("coords of enemy hqs: " + coordsOfEnemyHqs);
+
+        //printSharedArray(rc);
+        //System.out.println("coords of enemy hqs: " + coordsOfEnemyHqs);
         MapLocation closestEnemyHq = coordsOfEnemyHqs.get(0);
         for (MapLocation coordsOfEnemyHq : coordsOfEnemyHqs) {
             if (me.distanceSquaredTo(coordsOfEnemyHq) < me.distanceSquaredTo(closestEnemyHq)) {
@@ -483,26 +517,29 @@ public strictfp class RobotPlayer {
             }
         }
         attackerIsAttackingThisLocation = closestEnemyHq;
+        rc.setIndicatorString("Attacking closest hq which is at " + closestEnemyHq);
+
 
 
         // try attacking before movement
-        if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT) {
+        if (rc.isActionReady()) {
             attackerAttackAround(rc);
         }
 
         //handle movement
-        if (attackerIsAttackingThisLocation != null) {
-            // moves the attacker closer to this location target
-            attackerMoveToLocation(rc, me);
-        } else {
-            moveRandomly(rc);
+        if (rc.isMovementReady()) {
+            if (attackerIsAttackingThisLocation != null) {
+                // moves the attacker closer to this location target
+                attackerMoveToLocation(rc, me);
+            } else {
+                moveRandomly(rc);
+            }
         }
 
         //try attacking after moving
-        if (rc.getActionCooldownTurns() < GameConstants.COOLDOWN_LIMIT) {
+        if (rc.isActionReady()) {
             attackerAttackAround(rc);
         }
-
     }
 
 /*
@@ -600,6 +637,19 @@ public strictfp class RobotPlayer {
                                           HQ FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
 */
+    static void clearEnemyHqsFromTheSharedArray(RobotController rc) throws GameActionException {
+        numOfEnemyHqsInArray = 0;
+        rc.writeSharedArray(numOfEnemyHqsInArrayIndex, 0);
+        for (int i = enemyHqCoordsStartingIndex; i <= enemyHqCoordsEndingIndex; i++) {
+            rc.writeSharedArray(i, 0);
+        }
+    }
+
+    static void writeTheSymToSharedArray(RobotController rc, String sym) throws GameActionException {
+        if (sym.equals("V")) rc.writeSharedArray(symIndex, 1);
+        if (sym.equals("H")) rc.writeSharedArray(symIndex, 2);
+        if (sym.equals("R")) rc.writeSharedArray(symIndex, 3);
+    }
 
     /**
      * gives the calling hq its doppelgänger enemy hq's map location, could be useful later
@@ -607,9 +657,9 @@ public strictfp class RobotPlayer {
      */
     static void getThisHqsMirroredEnemyHqLocation(String sym) {
         enemyHqCoordsLocated = true;
-        if (sym.equals("H")) {
+        if (sym.equals("V")) {
             thisHqsEnemyHqMirror = possibleCoordsOfEnemyHqsAlwaysThree.get(0);
-        } else if (sym.equals("V")) {
+        } else if (sym.equals("H")) {
             thisHqsEnemyHqMirror = possibleCoordsOfEnemyHqsAlwaysThree.get(1);
         } else if (sym.equals("R")) {
             thisHqsEnemyHqMirror = possibleCoordsOfEnemyHqsAlwaysThree.get(2);
@@ -647,15 +697,14 @@ public strictfp class RobotPlayer {
      */
     static ArrayList<String> guessSymmetryBasedOnOurInitialHqLocations() {
         ArrayList<String> syms = new ArrayList<>(3);
-        syms.add("H");
         syms.add("V");
+        syms.add("H");
         syms.add("R");
         MapLocation originalCheckerHqPos = coordsOfOurHqs.get(0);
         //can only guess symmetries with more than 1 hq, so all three will remain valid after this
         if (coordsOfOurHqs.size() > 1) {
             for (int i = 1; i < coordsOfOurHqs.size(); i++) {
                 MapLocation currentCheckerHqPos = coordsOfOurHqs.get(i);
-                //see if it fails being a vertical symmetry
 
                 if (((originalCheckerHqPos.x < middlePos.x) && (currentCheckerHqPos.x > middlePos.x)) || (originalCheckerHqPos.x > middlePos.x) && (currentCheckerHqPos.x < middlePos.x)) {
                     //these two hqs are on opposite sides of the vertical symmetry line, so it CANNOT BE VERTICAL SYMMETRY
@@ -676,6 +725,42 @@ public strictfp class RobotPlayer {
                 }
             }
         }
+        return syms;
+    }
+
+    /**
+     *
+     * @param rc
+     * @param syms
+     * @return
+     * @throws GameActionException from senseNearbyRobots
+     */
+    static ArrayList<String> guessSymmetryBasedOnEnemyHqsWeCanSee(RobotController rc, ArrayList<String> syms) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        ArrayList<String> theActualSymmetry = new ArrayList<>();
+        for (int i = 0; i < possibleCoordsOfEnemyHqs.size(); i++) {
+        //System.out.println("looping through the possible coords of enemy hqs we have");
+        MapLocation possibleHqPosition = possibleCoordsOfEnemyHqs.get(i);
+            if (me.distanceSquaredTo(possibleHqPosition) <= 34) {
+                // if the possible hq position is in range of this hq
+                if (rc.canSenseRobotAtLocation(possibleHqPosition)) {
+                    // if there's a headquarters at this location, great!
+                    RobotInfo enemyRobot = rc.senseRobotAtLocation(possibleHqPosition);
+                    // this possible hq spot is actually a hq!
+                    possibleCoordsOfEnemyHqs.clear();
+                    possibleCoordsOfEnemyHqs.add(enemyRobot.getLocation());
+                    theActualSymmetry.add(syms.get(i));
+                    // should be the symmetry of the map
+                    return theActualSymmetry;
+                } else {
+                    // if there's no headquarters at this location, that's fine, we can narrow the possible spots down
+                    possibleCoordsOfEnemyHqs.remove(i);
+                    syms.remove(i);
+                }
+            }
+        }
+
+        // return original symmetry if we couldn't guess it here
         return syms;
     }
 
@@ -770,9 +855,16 @@ public strictfp class RobotPlayer {
         RobotInfo target = null;
 
         if (enemies.length > 0) {
+
             // the target is the random first in the array. Over each iteration, if another enemy in the array has
             // qualities that make it higher priority to attack than current target, then switch the target
-            target = enemies[0];
+
+            for (RobotInfo enemy : enemies) {
+                if (enemy.getType() != RobotType.HEADQUARTERS) {
+                    target = enemy;
+                    break;
+                }
+            }
 
             RobotType targetEnemyRobotType = null;
             int targetEnemyHealth = 0;
@@ -810,8 +902,11 @@ public strictfp class RobotPlayer {
                     }
                 }
             }
-            rc.setIndicatorString("TARGET: " + targetEnemyRobotType + " AT " + target.getLocation() + " WITH HEALTH: " + targetEnemyHealth + " DISTANCE: " + targetEnemyDistance);
+            if (target != null) {
+                rc.setIndicatorString("TARGET: " + targetEnemyRobotType + " AT " + target.getLocation() + " WITH HEALTH: " + targetEnemyHealth + " DISTANCE: " + targetEnemyDistance);
+            }
         }
+
         if (target != null) {
             if (rc.canAttack(target.getLocation()))
                 rc.attack(target.getLocation());
