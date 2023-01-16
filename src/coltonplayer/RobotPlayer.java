@@ -41,6 +41,7 @@ public strictfp class RobotPlayer {
     static int numOfEnemyHqsInArray = 0;
     static int testCounter = 0;
     static boolean scoutResultFromPossibleHqLocation;
+    static boolean scoutReturningHome = false;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
@@ -426,15 +427,7 @@ public strictfp class RobotPlayer {
         else {
             // we have max we can carry, go back to the (closest) hq and deposit!
             // System.out.println(coordsOfOurHqs);
-            MapLocation hqPos = coordsOfOurHqs.get(0);
-            // System.out.println(coordsOfOurHqs);
-
-            // find the closest hq to us
-            for (MapLocation hqCoords : coordsOfOurHqs) {
-                if (me.distanceSquaredTo(hqCoords) < me.distanceSquaredTo(hqPos)) {
-                    hqPos = hqCoords;
-                }
-            }
+            MapLocation hqPos = getTheClosestHq(rc);
 
             Direction dirToHq = me.directionTo(hqPos);
             if (rc.getLocation().isAdjacentTo(hqPos)) {
@@ -477,6 +470,7 @@ public strictfp class RobotPlayer {
         //System.out.println("Before: " + coordsOfEnemyHqs);
         //printSharedArray(rc);
         giveCallingRobotAListOfEnemyHqs(rc);
+        giveCallingRobotAListOfOurHqs(rc);
         //System.out.println("After: " + coordsOfEnemyHqs);
         //System.out.println(coordsOfEnemyHqs);
 
@@ -549,24 +543,16 @@ public strictfp class RobotPlayer {
         //handle movement
         if (rc.isMovementReady()) {
             if (attackerIsAttackingThisLocation != null) {
-                // moves the attacker closer to this location target
-                attackerMoveToLocation(rc, me);
-                if (rc.readSharedArray(symIndex) == 0) {
-                    if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, RobotType.LAUNCHER.visionRadiusSquared)) {
-                        // if we are at a hq location, and it's only a possible hq location, we need to report our findings
-                        // back to a hq, so we can guess the symmetry and know for sure where the other hqs are
-                        rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
-                        RobotInfo possibleHq = rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
-                        if (possibleHq == null) {
-                            // no hq here
-                            scoutResultFromPossibleHqLocation = false;
-                        } else {
-                            // hq here
-                            scoutResultFromPossibleHqLocation = true;
-                        }
-                        // now we want to go back to the closest hq
-                    }
+                checkIfWeSeeAHqOnOurTravels(rc);
+
+                if (scoutReturningHome) {
+                    MapLocation hqPos = getTheClosestHq(rc);
+                    moveToThisLocation(rc, hqPos);
+                } else {
+                    // moves the attacker closer to this location target
+                    attackerMoveToLocation(rc, me);
                 }
+
             } else {
                 moveRandomly(rc);
             }
@@ -667,6 +653,59 @@ public strictfp class RobotPlayer {
             rc.move(randomDir);
             //rc.setIndicatorString("Moving " + dir);
         }
+    }
+
+    /**
+     * try moving to this location
+     * @param rc
+     * @param tryToMoveToThis location to move to
+     * @throws GameActionException
+     */
+    static void moveToThisLocation(RobotController rc, MapLocation tryToMoveToThis) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        Direction dir = me.directionTo(tryToMoveToThis);
+        Direction[] moveDirs = new Direction[5];
+        moveDirs[0] = dir;
+        moveDirs[1] = dir.rotateRight();
+        moveDirs[2] = dir.rotateLeft();
+        moveDirs[3] = dir.rotateRight().rotateRight();
+        moveDirs[4] = dir.rotateLeft().rotateLeft();
+
+        for (int i = 0; i < moveDirs.length; i++) {
+            Direction moveDir = moveDirs[i];
+            if (rc.canMove(moveDir)) {
+                rc.move(moveDir);
+                break;
+            }
+            if (i == (moveDirs.length - 1)) {
+                Direction randomDir = directions[rng.nextInt(directions.length)];
+                if (rc.canMove(randomDir)) {
+                    rc.move(randomDir);
+                    // rc.setIndicatorString("Moving " + dir + " randomly");
+                }
+            }
+        }
+        if (rc.isMovementReady()) {
+            // rc.setIndicatorString("Didn't move, will change this later hopefully");
+        }
+    }
+
+    /**
+     * moves robot to closest hq. PLEASE have coordsOfOurHqs set before calling this.
+     * @param rc RobotController
+     */
+    static MapLocation getTheClosestHq(RobotController rc) {
+        MapLocation me = rc.getLocation();
+        MapLocation hqPos = coordsOfOurHqs.get(0);
+        // System.out.println(coordsOfOurHqs);
+
+        // find the closest hq to us
+        for (MapLocation hqCoords : coordsOfOurHqs) {
+            if (me.distanceSquaredTo(hqCoords) < me.distanceSquaredTo(hqPos)) {
+                hqPos = hqCoords;
+            }
+        }
+        return hqPos;
     }
 
 /*
@@ -989,5 +1028,35 @@ public strictfp class RobotPlayer {
         }
     }
 
+    /**
+     * Sets scoutResultFromPossibleHqLocation true/false based on if we got to a possible hq location, if there actually
+     * was a hq there or not. Sets scoutReturningHome to true if we found a possible
+     * @param rc
+     * @throws GameActionException from reading array and senseing location
+     */
+    static void checkIfWeSeeAHqOnOurTravels(RobotController rc) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        if (rc.readSharedArray(symIndex) == 0) {
+            // if symIndex is 0, then enemy hq positions are NOT located, so we need to do some scouting
+            if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, RobotType.LAUNCHER.visionRadiusSquared)) {
+                // if we are at a hq location, and it's only a possible hq location, we need to report our findings
+                // back to a hq, so we can guess the symmetry and know for sure where the other hqs are
+                if (rc.canSenseLocation(attackerIsAttackingThisLocation)) {
+                    rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
+                    RobotInfo possibleHq = rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
+                    if (possibleHq == null) {
+                        // no hq here
+                        scoutResultFromPossibleHqLocation = false;
+                    } else {
+                        // hq here
+                        scoutResultFromPossibleHqLocation = true;
+                    }
+                    // now we want to go back to the closest hq
+                    scoutReturningHome = true;
+                    rc.setIndicatorString("Returning home");
+                }
+            }
+        }
+    }
 }
 
