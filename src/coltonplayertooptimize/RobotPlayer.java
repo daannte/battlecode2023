@@ -59,6 +59,22 @@ public strictfp class RobotPlayer {
     static final int scoutedEnemyHqLocationIndex = 21;
     static final int hqOrNotIndex = 22;
     static final int rewriteEnemyHqsIndex = 23;
+
+
+    static MapLocation headquarter;
+    static MapLocation islandLoc;
+    static MapLocation closestWell;
+    static boolean hasAnchor = false;
+    static boolean collectAd = true;
+    static boolean hasCollectedMana = true;
+    static Direction currentDirection = null;
+    static Set<MapLocation> adWells = new HashSet<>();
+    static Set<MapLocation> mnWells = new HashSet<>();
+    static MapLocation[] headquarterLocations = new MapLocation[GameConstants.MAX_STARTING_HEADQUARTERS];
+
+
+
+
     /**
      * A random number generator.
      * We will use this RNG to make some random moves. The Random class is provided by the java.util.Random
@@ -274,24 +290,33 @@ public strictfp class RobotPlayer {
 
         //rc.setIndicatorString("IM HERE");
 
+
+
+
+        MapLocation hqLocation = rc.getLocation();
+        Direction direction = directions[rng.nextInt(directions.length)];
+        MapLocation spawnLocation = hqLocation.add(direction);
+
         //build attackers and carriers
-        if (attackersThisHqHasBuilt < 3) {
-            rc.setIndicatorString("we want to build a launcher");
-            //build an attacker
-            spawnADude(rc, attackerSpawnLocs, RobotType.LAUNCHER);
-
-        } else if (carriersThisHqHasBuilt < 4) {
-            //build a carrier
-            spawnADude(rc, carrierSpawnLocs, RobotType.CARRIER);
-        } else {
-            //build one at random
-            if (rng.nextBoolean()) {
-                spawnADude(rc, attackerSpawnLocs, RobotType.LAUNCHER);
-
-            } else {
-                spawnADude(rc, carrierSpawnLocs, RobotType.CARRIER);
-            }
+        if (turnCount == 1) {
+            addHqLocations(rc);
+            lookForWellType(rc);
         }
+        // Spawn three launchers to attack the other team
+        if (turnCount <= 3) spawnRobot(rc, RobotType.LAUNCHER, spawnLocation);
+        if (rc.canBuildAnchor(Anchor.STANDARD) && turnCount > 50) {
+            rc.buildAnchor(Anchor.STANDARD);
+        }
+        if (collectAd && !adWells.isEmpty() && turnCount > 3) {
+            spawnRobot(rc, RobotType.CARRIER, hqLocation.add(hqLocation.directionTo(adWells.iterator().next())));
+            collectAd = false;
+        } else if (!collectAd && !mnWells.isEmpty() && turnCount > 3) {
+            spawnRobot(rc, RobotType.CARRIER, hqLocation.add(hqLocation.directionTo(mnWells.iterator().next())));
+            collectAd = true;
+        } else if (turnCount > 3){
+            spawnRobot(rc, RobotType.CARRIER, spawnLocation);
+        }
+        spawnRobot(rc, RobotType.LAUNCHER, spawnLocation);
 
         // printSharedArray(rc);
 
@@ -351,120 +376,71 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
-        middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
-        // System.out.println(middlePos);
-        MapLocation me = rc.getLocation();
-
-        if (turnCount == 1) {
-            // guaranteed to be able to read this on turn 1 btw
-            amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
-            giveCallingRobotAListOfOurHqs(rc);
+        // Get the location of the HQ
+        if (turnCount == 1) findHq(rc);
+        if (turnCount == 2) updateHqLocations(rc);
+        if (rc.canTakeAnchor(headquarter, Anchor.STANDARD)) {
+            rc.takeAnchor(headquarter, Anchor.STANDARD);
+            hasAnchor = true;
         }
-
-        if (rc.getAnchor() != null) {
-            // If I have an anchor singularly focus on getting it to the first island I see
-            int[] islands = rc.senseNearbyIslands();
-            Set<MapLocation> islandLocs = new HashSet<>();
-            for (int id : islands) {
-                MapLocation[] thisIslandLocs = rc.senseNearbyIslandLocations(id);
-                islandLocs.addAll(Arrays.asList(thisIslandLocs));
+        // If carrier has an anchor go try and place it, else go get resources
+        scanIslands(rc);
+        if (hasCollectedMana) {
+            getClosestAdWell(rc);
+            if (closestWell != null && rc.canCollectResource(closestWell, -1)) {
+                rc.collectResource(closestWell, -1);
             }
-            if (islandLocs.size() > 0) {
-                MapLocation islandLocation = islandLocs.iterator().next();
-                rc.setIndicatorString("Moving my anchor towards " + islandLocation);
-                while (!rc.getLocation().equals(islandLocation)) {
-                    Direction dir = rc.getLocation().directionTo(islandLocation);
-                    if (rc.canMove(dir)) {
-                        rc.move(dir);
-                    }
-                }
-                if (rc.canPlaceAnchor()) {
-                    rc.setIndicatorString("Huzzah, placed anchor!");
-                    rc.placeAnchor();
-                }
-            }
-        }
-        
-        // If we can see a well, move towards it
-        int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
-        int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
-
-        boolean dontMove = false;
-        if ((amountOfAdamantium + amountOfMana) < 40) {
-            // needa find a well
-            // rc.setIndicatorString("Tried to sense a well near me and move to it");
-            WellInfo[] wells = rc.senseNearbyWells();
-            if (wells.length > 0) {
-                MapLocation closestWellLoc = wells[0].getMapLocation();
-                WellInfo closestWell = wells[0];
-                for (WellInfo well : wells) {
-                    if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWellLoc)) {
-                        closestWellLoc = well.getMapLocation();
-                        closestWell = well;
-                    }
-                }
-                if (me.isAdjacentTo(closestWellLoc)) {
-                    // if we are close enough to collect, we don't need to move closer, so don't move, and just collect
-                    dontMove = true;
-                    // Try to gather from squares around us.
-                    for (int dx = -1; dx <= 1; dx++) {
-                        for (int dy = -1; dy <= 1; dy++) {
-                            MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
-                            if (rc.canCollectResource(wellLocation, closestWell.getRate())) {
-                                rc.collectResource(wellLocation, closestWell.getRate());
-                                rc.setIndicatorString("Collecting, now have, AD:" +
-                                        rc.getResourceAmount(ResourceType.ADAMANTIUM) +
-                                        " MN: " + rc.getResourceAmount(ResourceType.MANA) +
-                                        " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
-                            }
+            if (totalResources(rc) == GameConstants.CARRIER_CAPACITY) {
+                if (rc.getLocation().isAdjacentTo(headquarter)) {
+                    for (ResourceType resourceType : ResourceType.values()) {
+                        if (rc.canTransferResource(headquarter, resourceType, rc.getResourceAmount(resourceType))) {
+                            rc.transferResource(headquarter, resourceType, rc.getResourceAmount(resourceType));
+                            hasCollectedMana = false;
+                            closestWell = null;
                         }
                     }
                 } else {
-                    // if we aren't adjacent to the well, we can't collect, so move to it
-                    Direction dir = me.directionTo(closestWellLoc);
-                    if (rc.canMove(dir)) {
-                        rc.move(dir);
-                        rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir);
-                    }
-                    if (amountOfAdamantium + amountOfMana == 0) {
-                        //empty dudes can move a second time hehe
-                        Direction dir2 = me.directionTo(closestWellLoc);
-                        if (rc.canMove(dir2)) {
-                            rc.move(dir2);
-                            rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir2);
-                        }
-                    }
+                    moveTo(rc, headquarter);
                 }
             }
+
         }
         else {
-            // we have max we can carry, go back to the (closest) hq and deposit!
-            // System.out.println(coordsOfOurHqs);
-            MapLocation hqPos = getTheClosestHq(rc);
-
-            Direction dirToHq = me.directionTo(hqPos);
-            if (rc.getLocation().isAdjacentTo(hqPos)) {
-                for (ResourceType resource: ResourceType.values()) {
-                    // System.out.println("" + resource + "");
-                    if (rc.canTransferResource(hqPos, resource, rc.getResourceAmount(resource))) {
-                        rc.transferResource(hqPos, resource, rc.getResourceAmount(resource));
-                        rc.setIndicatorString("Transferred " + resource + " to " + hqPos);
-                    }
-                }
-            } else if (rc.canMove(dirToHq)) {
-                rc.move(dirToHq);
-                rc.setIndicatorString("Moving " + dirToHq + " to get to " + hqPos);
-            } else {
-
+            getClosestManaWell(rc);
+            if (closestWell != null && rc.canCollectResource(closestWell, -1)){
+                rc.collectResource(closestWell, -1);
             }
-        }
+            if (totalResources(rc) == GameConstants.CARRIER_CAPACITY) {
+                if (rc.getLocation().isAdjacentTo(headquarter)) {
+                    for (ResourceType resourceType : ResourceType.values()) {
+                        if (rc.canTransferResource(headquarter, resourceType, rc.getResourceAmount(resourceType))) {
+                            rc.transferResource(headquarter, resourceType, rc.getResourceAmount(resourceType));
+                            hasCollectedMana = true;
+                            closestWell = null;
+                        }
+                    }
+                } else {
+                    moveTo(rc, headquarter);
+                }
+            }
 
-        // move randomly if we want to move but couldn't find a valid spot
-        Direction dir = directions[rng.nextInt(directions.length)];
-        if (rc.isMovementReady() && rc.canMove(dir) && !dontMove) {
-            //System.out.println(rc.canMove(dir));
-            rc.move(dir);
-            //rc.setIndicatorString("Moving " + dir);
+        }
+        if (hasAnchor) {
+            if (islandLoc == null) moveRandomDir(rc);
+            else {
+                moveTo(rc, islandLoc);
+            }
+            if(rc.canPlaceAnchor() && rc.senseTeamOccupyingIsland(rc.senseIsland(rc.getLocation())) == Team.NEUTRAL) {
+                rc.placeAnchor();
+                hasAnchor = false;
+            }
+        } else {
+            if (totalResources(rc) == 0) {
+                if (closestWell == null) moveRandomDir(rc);
+                else if (!(rc.getLocation().isAdjacentTo(closestWell))) {
+                    moveTo(rc, closestWell);
+                }
+            }
         }
     }
 
@@ -1157,5 +1133,155 @@ public strictfp class RobotPlayer {
             }
         }
     }
+//------------------------------------------------------------------------------------------
+static void spawnRobot(RobotController rc, RobotType robot, MapLocation location) throws GameActionException {
+    if(rc.canBuildRobot(robot, location)) rc.buildRobot(robot, location);
+    else {
+        Direction dir = directions[rng.nextInt(directions.length)];
+        MapLocation spawnLocation = rc.getLocation().add(dir);
+        if (rc.canBuildRobot(robot, spawnLocation)) rc.buildRobot(robot, spawnLocation);
+    }
 }
+    /**
+     * Make the robot move
+     * @param rc Robot Controller
+     * @param dir direction that the robot should move in
+     */
+    static void move(RobotController rc, Direction dir) throws GameActionException {
+        if (rc.canMove(dir)) {
+            rc.move(dir);
+            if(rc.isMovementReady()) {
+                if(rc.canMove(dir)) rc.move(dir);
+            }
+        }
+        else moveRandomDir(rc);
+    }
+    static void moveRandomDir(RobotController rc) throws GameActionException {
+        Direction dir = directions[rng.nextInt(directions.length)];
+        if(rc.canMove(dir)) {
+            rc.move(dir);
+            if (rc.isMovementReady()) {
+                if (rc.canMove(dir)) rc.move(dir);
+
+            }
+        }
+    }
+    static void moveTo(RobotController rc, MapLocation targetDir) throws GameActionException {
+        Direction dir = rc.getLocation().directionTo(targetDir);
+        if (rc.canMove(dir)) {
+            rc.move(dir);
+            if(rc.isMovementReady()) {
+                if(rc.canMove(dir)) rc.move(dir);
+            }
+            currentDirection = null;
+        } else {
+            if (currentDirection == null) currentDirection = dir;
+            for (int i = 0; i < 8; i++) {
+                if (rc.canMove(currentDirection)) {
+                    rc.move(currentDirection);
+                    if(rc.isMovementReady()) {
+                        if(rc.canMove(currentDirection)) rc.move(currentDirection);
+                    }
+                    currentDirection = currentDirection.rotateRight();
+                    break;
+                } else currentDirection = currentDirection.rotateLeft();
+            }
+        }
+    }
+
+    static void scanIslands(RobotController rc) throws GameActionException {
+        int[] ids = rc.senseNearbyIslands();
+        for(int id : ids) {
+            if(rc.senseTeamOccupyingIsland(id) == Team.NEUTRAL) {
+                MapLocation[] locs = rc.senseNearbyIslandLocations(id);
+                if(locs.length > 0) {
+                    islandLoc = locs[0];
+                    break;
+                }
+            }
+        }
+    }
+    static void getClosestManaWell(RobotController rc) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        WellInfo[] wells = rc.senseNearbyWells(-1, ResourceType.MANA);
+        if (wells.length >= 1) {
+            closestWell = wells[0].getMapLocation();
+            for (WellInfo well : wells) {
+                if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWell)) {
+                    closestWell = well.getMapLocation();
+                }
+            }
+        }
+    }
+    static void getClosestAdWell(RobotController rc) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        WellInfo[] wells = rc.senseNearbyWells(-1, ResourceType.ADAMANTIUM);
+        if (wells.length >= 1) {
+            closestWell = wells[0].getMapLocation();
+            for (WellInfo well : wells) {
+                if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWell)) {
+                    closestWell = well.getMapLocation();
+                }
+            }
+        }
+    }
+    static void getClosestWell(RobotController rc) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        WellInfo[] wells = rc.senseNearbyWells();
+        if (wells.length >= 1) {
+            closestWell = wells[0].getMapLocation();
+            for (WellInfo well : wells) {
+                if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWell)) {
+                    closestWell = well.getMapLocation();
+                }
+            }
+        }
+    }
+    static void lookForWellType(RobotController rc) {
+        WellInfo[] wells = rc.senseNearbyWells();
+        if (wells.length >= 1) {
+            for (WellInfo well : wells) {
+                if (well.getResourceType() == ResourceType.ADAMANTIUM) adWells.add(well.getMapLocation());
+                else mnWells.add(well.getMapLocation());
+            }
+        }
+    }
+    static int totalResources(RobotController rc) {
+        return rc.getResourceAmount(ResourceType.ADAMANTIUM) + rc.getResourceAmount(ResourceType.MANA)
+                + rc.getResourceAmount(ResourceType.ELIXIR);
+    }
+    static void addHqLocations(RobotController rc) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        for (int i = 0; i < GameConstants.MAX_STARTING_HEADQUARTERS; i++) {
+            if (rc.readSharedArray(i) == 0) {
+                if(rc.canWriteSharedArray(i, locationToInt(rc, me))) {
+                    rc.writeSharedArray(i, locationToInt(rc, me));
+                    break;
+                }
+            }
+        }
+    }
+    static void updateHqLocations(RobotController rc) throws GameActionException {
+        if (turnCount == 2) {
+            for (int i = 0; i < GameConstants.MAX_STARTING_HEADQUARTERS; i++) {
+                headquarterLocations[i] = intToLocation(rc, rc.readSharedArray(i));
+                if (rc.readSharedArray(i) == 0) break;
+            }
+        }
+    }
+    static void findHq(RobotController rc) {
+        RobotInfo[] robots = rc.senseNearbyRobots();
+        for (RobotInfo robot : robots) {
+            if (robot.getType() == RobotType.HEADQUARTERS && robot.getTeam() == rc.getTeam()) {
+                headquarter = robot.getLocation();
+                break;
+            }
+        }
+    }
+
+}
+
+// ----------------------------------------------------------------------------------------------------------
+
+
 
