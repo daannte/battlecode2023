@@ -2,6 +2,7 @@ package coltonplayer;
 
 import battlecode.common.*;
 
+import java.awt.*;
 import java.lang.reflect.Array;
 import java.util.*;
 
@@ -180,9 +181,12 @@ public strictfp class RobotPlayer {
             giveCallingRobotAListOfOurHqs(rc);
 
             // guess the symmetry based on only our starting hq positions
-            syms = guessSymmetryBasedOnOurInitialHqLocations();
+            // syms = guessSymmetryBasedOnOurInitialHqLocations();
             // rc.setIndicatorString(syms.toString());
-
+            syms.add("V");
+            syms.add("H");
+            syms.add("R");
+            System.out.println("syms rn: " + syms);
             if (syms.size() > 1) {
                 //symmetry wasn't guessed just based on our initialHqPositions, so try another way
                 System.out.println("Before" + syms);
@@ -276,7 +280,7 @@ public strictfp class RobotPlayer {
 
         //build attackers and carriers
         if (attackersThisHqHasBuilt < 3) {
-            rc.setIndicatorString("we want to build a launcher");
+            //rc.setIndicatorString("we want to build a launcher");
             //build an attacker
             spawnADude(rc, attackerSpawnLocs, RobotType.LAUNCHER);
 
@@ -770,10 +774,8 @@ public strictfp class RobotPlayer {
      * it at all, and only one of those would remain if we can narrow it down all the way
      */
     static ArrayList<String> guessSymmetryBasedOnOurInitialHqLocations() {
-        ArrayList<String> syms = new ArrayList<>(3);
-        syms.add("V");
-        syms.add("H");
-        syms.add("R");
+
+        System.out.println("Before: " + syms);
         MapLocation originalCheckerHqPos = coordsOfOurHqs.get(0);
         //can only guess symmetries with more than 1 hq, so all three will remain valid after this
         if (coordsOfOurHqs.size() > 1) {
@@ -799,6 +801,7 @@ public strictfp class RobotPlayer {
                 }
             }
         }
+        System.out.println("After: " + syms);
         return syms;
     }
 
@@ -818,18 +821,20 @@ public strictfp class RobotPlayer {
             if (me.distanceSquaredTo(possibleHqPosition) <= 34) {
                 // if the possible hq position is in range of this hq
                 if (rc.canSenseRobotAtLocation(possibleHqPosition)) {
-                    // if there's a headquarters at this location, great!
-                    RobotInfo enemyRobot = rc.senseRobotAtLocation(possibleHqPosition);
-                    // this possible hq spot is actually a hq!
-                    possibleCoordsOfEnemyHqs.clear();
-                    possibleCoordsOfEnemyHqs.add(enemyRobot.getLocation());
-                    theActualSymmetry.add(syms.get(i));
-                    // should be the symmetry of the map
-                    return theActualSymmetry;
-                } else {
-                    // if there's no headquarters at this location, that's fine, we can narrow the possible spots down
-                    possibleCoordsOfEnemyHqs.remove(i);
-                    syms.remove(i);
+                    if (rc.senseRobotAtLocation(possibleHqPosition).getType() == RobotType.HEADQUARTERS) {
+                        // if there's a headquarters at this location, great!
+                        RobotInfo enemyRobot = rc.senseRobotAtLocation(possibleHqPosition);
+                        // this possible hq spot is actually a hq!
+                        possibleCoordsOfEnemyHqs.clear();
+                        possibleCoordsOfEnemyHqs.add(enemyRobot.getLocation());
+                        theActualSymmetry.add(syms.get(i));
+                        // should be the symmetry of the map
+                        return theActualSymmetry;
+                    } else {
+                        // if there's no headquarters at this location, that's fine, we can narrow the possible spots down
+                        possibleCoordsOfEnemyHqs.remove(i);
+                        syms.remove(i);
+                    }
                 }
             }
         }
