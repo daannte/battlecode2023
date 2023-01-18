@@ -2,7 +2,6 @@ package coltonplayer;
 
 import battlecode.common.*;
 
-import java.awt.*;
 import java.lang.reflect.Array;
 import java.util.*;
 
@@ -44,11 +43,14 @@ public strictfp class RobotPlayer {
     static int testCounter = 0;
     static boolean scoutResultFromPossibleHqLocation;
     static boolean scoutReturningHome = false;
+    static boolean attackerAttacked;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
-     * [0 ,    1-4     ,  5  ,       6-17       ,         18        ,         19          ,   20   ,     21         ,   22    ,     23     ,      24-63              ]
-     * ind  hq coords  #ofhqs  enemy hq coords   #ofenemyhqsInArray   AtckHQEvenlyCounter    sym   scoutedEnemyHqLoc  hqOrNot  rewriteEhQ's
+     * [0 ,    1-4     ,  5  ,       6-17       ,         18        ,         19          ,   20   ,     21         ,   22
+     * ind  hq coords  #ofhqs  enemy hq coords   #ofenemyhqsInArray   AtckHQEvenlyCounter    sym   scoutedEnemyHqLoc  hqOrNot
+     * ,     23     ,      24-63              ]
+     *  rewriteEhQ's
      */
     static final int hqStoringIndicatorIndex = 0;
     static final int hqCoordsStartingIndex = 1;
@@ -162,7 +164,7 @@ public strictfp class RobotPlayer {
             // put this hq into the array with our hq's
             storeOurHqToArray(rc, me);
 
-            middlePos = new MapLocation((int) Math.round((double) rc.getMapWidth() / 2), (int) Math.round((double) rc.getMapWidth() / 2));
+            middlePos = new MapLocation((int) Math.round( (double) width / 2), (int) Math.round( (double) height / 2));
 
             // put the enemy hq coords to possibleCoordsOfEnemyHqs and possibleCoordsOfEnemyHqsAlwaysThree
             addEnemyHqCoordsToTheStaticLists(width, height, me);
@@ -251,10 +253,6 @@ public strictfp class RobotPlayer {
             System.out.println("wrote to rewriteEnemyHqsIndex");
             rc.writeSharedArray(rewriteEnemyHqsIndex, rc.getRoundNum()+1);
         }
-
-
-
-        middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
 
         // Pick a direction to build in.
 
@@ -353,12 +351,12 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
-        middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
         // System.out.println(middlePos);
         MapLocation me = rc.getLocation();
 
         if (turnCount == 1) {
             // guaranteed to be able to read this on turn 1 btw
+            middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapHeight() / 2));
             amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
             giveCallingRobotAListOfOurHqs(rc);
         }
@@ -476,18 +474,15 @@ public strictfp class RobotPlayer {
      */
     static void runLauncher(RobotController rc) throws GameActionException {
 
-        middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
         amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
         numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
         MapLocation me = rc.getLocation();
 
-        // on every turn, the attackers get an array of all the enemy hq locations in the array
-        //System.out.println("Before: " + coordsOfEnemyHqs);
-        //printSharedArray(rc);
+        // on every turn, the attackers get an array of all hq locations in the array
+
         giveCallingRobotAListOfEnemyHqs(rc);
         giveCallingRobotAListOfOurHqs(rc);
-        //System.out.println("After: " + coordsOfEnemyHqs);
-        //System.out.println(coordsOfEnemyHqs);
+
 
         // if # of our hqs == # of enemy hq locations in the array, those probable enemy locations are the real deal!
         if (amountOfHqsInThisGame == numOfEnemyHqsInArray) {
@@ -495,39 +490,16 @@ public strictfp class RobotPlayer {
         }
         if (turnCount == 1) {
             // SPAWNED :D
-            middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
+            middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapHeight() / 2));
 
         }
 
-        int modNumber = amountOfHqsInThisGame;
-
-//        // if the enemy hq coords are determined fs, we can beeline an enemy hq by setting attackerIsAttackingThisLocation
-//        if (enemyHqCoordsLocated) {
-//
-//
-//
-//
-//
-//
-//            // use this if we want to split up every attacker in the game evenly among the enemy hq positions
-//            attackerIsAttackingThisLocation = intToLocation(rc, rc.readSharedArray(replaceThis + enemyHqCoordsStartingIndex));
-//        }
-
-        //printSharedArray(rc);
-        //System.out.println("coords of enemy hqs: " + coordsOfEnemyHqs);
         MapLocation closestEnemyHq = coordsOfEnemyHqs.get(0);
         StringBuilder indString = new StringBuilder();
-//        indString.append(closestEnemyHq);
-//        indString.append(" ");
         if (!enemyHqCoordsLocated) {
             for (MapLocation coordsOfEnemyHq : coordsOfEnemyHqs) {
-//            indString.append(coordsOfEnemyHq);
-//            indString.append(" ");
-//            indString.append(me.distanceSquaredTo(coordsOfEnemyHq));
-//            indString.append(" ");
                 if (me.distanceSquaredTo(coordsOfEnemyHq) < me.distanceSquaredTo(closestEnemyHq)) {
                     closestEnemyHq = coordsOfEnemyHq;
-                    //indString.append(me.distanceSquaredTo(closestEnemyHq));
                 }
             }
             attackerIsAttackingThisLocation = closestEnemyHq;
@@ -535,23 +507,20 @@ public strictfp class RobotPlayer {
             attackerIsAttackingThisLocation = coordsOfEnemyHqs.get(rc.getID() % numOfEnemyHqsInArray);
         }
 
-
-        indString.append(" Atck ");
-        indString.append(closestEnemyHq);
-        indString.append(" | ");
-        indString.append(me.distanceSquaredTo(closestEnemyHq));
-        rc.setIndicatorString(String.valueOf(indString));
-
-
         // try attacking before movement
         if (rc.isActionReady()) {
-            attackerAttackAround(rc);
+            ArrayList<Object> attackedInfo = attackerAttackAround(rc);
+            if (attackerAttacked) {
+                assert attackedInfo != null;
+                if (attackedInfo.get(1) == RobotType.LAUNCHER) {
+                    // if we attacked an attacker before moving, use the movement this turn to try to move away from them
+                    moveOppositeDirection(rc, (MapLocation) attackedInfo.get(0));
+                }
+            }
         }
 
-        //handle movement
         if (rc.isMovementReady()) {
             if (attackerIsAttackingThisLocation != null) {
-
                 if (enemyHqCoordsLocated) {
                     scoutReturningHome = false;
                 } else {
@@ -563,20 +532,11 @@ public strictfp class RobotPlayer {
                     moveToThisLocation(rc, hqPos);
                     //rc.setIndicatorString("Heading home to " + hqPos);
                     //if (hqPos.isWithinDistanceSquared(me, GameConstants.DISTANCE_SQUARED_FROM_HEADQUARTER))
-                    if (hqPos.isWithinDistanceSquared(me, RobotType.HEADQUARTERS.actionRadiusSquared)) {
-                        //rc.setIndicatorString("in range of hq, but cant write.....");
-                        if (rc.canWriteSharedArray(scoutedEnemyHqLocationIndex, locationToInt(rc, attackerIsAttackingThisLocation))) {
-                            //rc.setIndicatorString("MADE IT HOME, depositing information to the array");
-                            rc.writeSharedArray(scoutedEnemyHqLocationIndex, locationToInt(rc, attackerIsAttackingThisLocation));
-                            rc.writeSharedArray(hqOrNotIndex, booleanToInt(scoutResultFromPossibleHqLocation));
-                            scoutReturningHome = false;
-                        }
-                    }
+                    didScoutMakeItHome(rc, hqPos, me);
                 } else {
                     // moves the attacker closer to this location target
                     attackerMoveToLocation(rc, me);
                 }
-
             } else {
                 moveRandomly(rc);
             }
@@ -689,18 +649,19 @@ public strictfp class RobotPlayer {
      * @throws GameActionException from move()
      */
     static void moveRandomly(RobotController rc) throws GameActionException {
-        Direction randomDir = directions[rng.nextInt(directions.length)];
-        if (rc.canMove(randomDir)) {
-            rc.move(randomDir);
-            //rc.setIndicatorString("Moving " + dir);
+        for (Direction direction : directions) {
+            if (rc.canMove(direction)) {
+                rc.move(direction);
+                break;
+            }
         }
     }
 
     /**
      * try moving to this location
-     * @param rc
+     * @param rc RobotController
      * @param tryToMoveToThis location to move to
-     * @throws GameActionException
+     * @throws GameActionException form moving
      */
     static void moveToThisLocation(RobotController rc, MapLocation tryToMoveToThis) throws GameActionException {
         MapLocation me = rc.getLocation();
@@ -719,15 +680,11 @@ public strictfp class RobotPlayer {
                 break;
             }
             if (i == (moveDirs.length - 1)) {
-                Direction randomDir = directions[rng.nextInt(directions.length)];
-                if (rc.canMove(randomDir)) {
-                    rc.move(randomDir);
-                    // rc.setIndicatorString("Moving " + dir + " randomly");
-                }
+                moveRandomly(rc);
             }
         }
         if (rc.isMovementReady()) {
-            // rc.setIndicatorString("Didn't move, will change this later hopefully");
+            rc.setIndicatorString("Didn't move somehow");
         }
     }
 
@@ -1018,19 +975,19 @@ public strictfp class RobotPlayer {
      * @param rc RobotController
      * @throws GameActionException from senseNearbyRobots
      */
-    static void attackerAttackAround(RobotController rc) throws GameActionException {
+    static ArrayList<Object> attackerAttackAround(RobotController rc) throws GameActionException {
+        ArrayList<Object> output = new ArrayList<Object>();
+        attackerAttacked = false;
         int radius = rc.getType().actionRadiusSquared;
         Team opponent = rc.getTeam().opponent();
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
-        // rc.setIndicatorString(Arrays.toString(enemies));
-
         RobotInfo target = null;
 
         if (enemies.length > 0) {
-
             // the target is the random first in the array. Over each iteration, if another enemy in the array has
             // qualities that make it higher priority to attack than current target, then switch the target
 
+            // get the first non-hq as our first possible target
             for (RobotInfo enemy : enemies) {
                 if (enemy.getType() != RobotType.HEADQUARTERS) {
                     target = enemy;
@@ -1078,12 +1035,30 @@ public strictfp class RobotPlayer {
                 rc.setIndicatorString("TARGET: " + targetEnemyRobotType + " AT " + target.getLocation() + " WITH HEALTH: " + targetEnemyHealth + " DISTANCE: " + targetEnemyDistance);
             }
         }
-
         if (target != null) {
-            if (rc.canAttack(target.getLocation()))
+            if (rc.canAttack(target.getLocation())) {
                 rc.attack(target.getLocation());
+                attackerAttacked = true;
+                output.add(target.getLocation());
+                output.add(target.getType());
+                return output;
+            }
         }
+        return null;
     }
+
+    static void moveOppositeDirection(RobotController rc, MapLocation moveAwayFrom) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        Direction directionToAttacker = me.directionTo(moveAwayFrom);
+        Direction straightOpposite = directionToAttacker.rotateRight().rotateRight().rotateRight().rotateRight();
+        Direction almostOpposite1 = directionToAttacker.rotateRight().rotateRight().rotateRight();
+        Direction almostOpposite2 = directionToAttacker.rotateLeft().rotateLeft().rotateLeft();
+
+        if (rc.canMove(straightOpposite)) rc.move(straightOpposite);
+        else if (rc.canMove(almostOpposite1)) rc.move(almostOpposite1);
+        else if (rc.canMove(almostOpposite2)) rc.move(almostOpposite2);
+    }
+
 
     /**
      * moves attacker towards a location
@@ -1095,44 +1070,14 @@ public strictfp class RobotPlayer {
         if (me.isAdjacentTo(attackerIsAttackingThisLocation)) {
             // vibe
         } else {
-            // we aren't by the thing we wanna attack, move to it
-
-            // if we have enemy hq, move to it
-            // every attacker from this hq will just beeline its symmetrical enemy hq partner
-            Direction dir = me.directionTo(attackerIsAttackingThisLocation);
-            Direction[] moveDirs = new Direction[5];
-            moveDirs[0] = dir;
-            moveDirs[1] = dir.rotateRight();
-            moveDirs[2] = dir.rotateLeft();
-            moveDirs[3] = dir.rotateRight().rotateRight();
-            moveDirs[4] = dir.rotateLeft().rotateLeft();
-
-            for (int i = 0; i < moveDirs.length; i++) {
-                Direction moveDir = moveDirs[i];
-                if (rc.canMove(moveDir)) {
-                    rc.move(moveDir);
-                    // rc.setIndicatorString("Moving towards " + attackerIsAttackingThisLocation + " by going " + moveDir);
-                    break;
-                }
-                if (i == (moveDirs.length - 1)) {
-                    // couldn't move towards the location we wanna attack
-                    Direction randomDir = directions[rng.nextInt(directions.length)];
-                    if (rc.canMove(randomDir)) {
-                        rc.move(randomDir);
-                        // rc.setIndicatorString("Moving " + dir + " randomly");
-                    }
-                }
-            }
-            if (rc.isMovementReady()) {
-                // rc.setIndicatorString("Didn't move, will change this later hopefully");
-            }
+            moveToThisLocation(rc, attackerIsAttackingThisLocation);
         }
     }
 
     /**
      * Sets scoutResultFromPossibleHqLocation true/false based on if we got to a possible hq location, if there actually
      * was a hq there or not. Sets scoutReturningHome to true if we found a possible
-     * @param rc
+     * @param rc RobotController
      * @throws GameActionException from reading array and sensing location
      */
     static void checkIfWeSeeAHqOnOurTravels(RobotController rc) throws GameActionException {
@@ -1156,6 +1101,18 @@ public strictfp class RobotPlayer {
                     scoutReturningHome = true;
                     rc.setIndicatorString("Returning home");
                 }
+            }
+        }
+    }
+
+    static void didScoutMakeItHome(RobotController rc, MapLocation hqPos, MapLocation me) throws GameActionException {
+        if (hqPos.isWithinDistanceSquared(me, RobotType.HEADQUARTERS.actionRadiusSquared)) {
+            //rc.setIndicatorString("in range of hq, but cant write.....");
+            if (rc.canWriteSharedArray(scoutedEnemyHqLocationIndex, locationToInt(rc, attackerIsAttackingThisLocation))) {
+                //rc.setIndicatorString("MADE IT HOME, depositing information to the array");
+                rc.writeSharedArray(scoutedEnemyHqLocationIndex, locationToInt(rc, attackerIsAttackingThisLocation));
+                rc.writeSharedArray(hqOrNotIndex, booleanToInt(scoutResultFromPossibleHqLocation));
+                scoutReturningHome = false;
             }
         }
     }
