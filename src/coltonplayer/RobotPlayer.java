@@ -501,35 +501,12 @@ public strictfp class RobotPlayer {
 
         }
 
-        int modNumber = amountOfHqsInThisGame;
-
-//        // if the enemy hq coords are determined fs, we can beeline an enemy hq by setting attackerIsAttackingThisLocation
-//        if (enemyHqCoordsLocated) {
-//
-//
-//
-//
-//
-//
-//            // use this if we want to split up every attacker in the game evenly among the enemy hq positions
-//            attackerIsAttackingThisLocation = intToLocation(rc, rc.readSharedArray(replaceThis + enemyHqCoordsStartingIndex));
-//        }
-
-        //printSharedArray(rc);
-        //System.out.println("coords of enemy hqs: " + coordsOfEnemyHqs);
         MapLocation closestEnemyHq = coordsOfEnemyHqs.get(0);
         StringBuilder indString = new StringBuilder();
-//        indString.append(closestEnemyHq);
-//        indString.append(" ");
         if (!enemyHqCoordsLocated) {
             for (MapLocation coordsOfEnemyHq : coordsOfEnemyHqs) {
-//            indString.append(coordsOfEnemyHq);
-//            indString.append(" ");
-//            indString.append(me.distanceSquaredTo(coordsOfEnemyHq));
-//            indString.append(" ");
                 if (me.distanceSquaredTo(coordsOfEnemyHq) < me.distanceSquaredTo(closestEnemyHq)) {
                     closestEnemyHq = coordsOfEnemyHq;
-                    //indString.append(me.distanceSquaredTo(closestEnemyHq));
                 }
             }
             attackerIsAttackingThisLocation = closestEnemyHq;
@@ -537,13 +514,7 @@ public strictfp class RobotPlayer {
             attackerIsAttackingThisLocation = coordsOfEnemyHqs.get(rc.getID() % numOfEnemyHqsInArray);
         }
 
-
-        indString.append(" Atck ");
-        indString.append(closestEnemyHq);
-        indString.append(" | ");
-        indString.append(me.distanceSquaredTo(closestEnemyHq));
-        rc.setIndicatorString(String.valueOf(indString));
-
+        // rc.setIndicatorString("Atck " + closestEnemyHq);
 
         // try attacking before movement
         if (rc.isActionReady()) {
@@ -553,7 +524,6 @@ public strictfp class RobotPlayer {
         //handle movement
         if (rc.isMovementReady()) {
             if (attackerIsAttackingThisLocation != null) {
-
                 if (enemyHqCoordsLocated) {
                     scoutReturningHome = false;
                 } else {
@@ -565,20 +535,11 @@ public strictfp class RobotPlayer {
                     moveToThisLocation(rc, hqPos);
                     //rc.setIndicatorString("Heading home to " + hqPos);
                     //if (hqPos.isWithinDistanceSquared(me, GameConstants.DISTANCE_SQUARED_FROM_HEADQUARTER))
-                    if (hqPos.isWithinDistanceSquared(me, RobotType.HEADQUARTERS.actionRadiusSquared)) {
-                        //rc.setIndicatorString("in range of hq, but cant write.....");
-                        if (rc.canWriteSharedArray(scoutedEnemyHqLocationIndex, locationToInt(rc, attackerIsAttackingThisLocation))) {
-                            //rc.setIndicatorString("MADE IT HOME, depositing information to the array");
-                            rc.writeSharedArray(scoutedEnemyHqLocationIndex, locationToInt(rc, attackerIsAttackingThisLocation));
-                            rc.writeSharedArray(hqOrNotIndex, booleanToInt(scoutResultFromPossibleHqLocation));
-                            scoutReturningHome = false;
-                        }
-                    }
+                    didScoutMakeItHome(rc, hqPos, me);
                 } else {
                     // moves the attacker closer to this location target
                     attackerMoveToLocation(rc, me);
                 }
-
             } else {
                 moveRandomly(rc);
             }
@@ -1125,6 +1086,18 @@ public strictfp class RobotPlayer {
                     scoutReturningHome = true;
                     rc.setIndicatorString("Returning home");
                 }
+            }
+        }
+    }
+
+    static void didScoutMakeItHome(RobotController rc, MapLocation hqPos, MapLocation me) throws GameActionException {
+        if (hqPos.isWithinDistanceSquared(me, RobotType.HEADQUARTERS.actionRadiusSquared)) {
+            //rc.setIndicatorString("in range of hq, but cant write.....");
+            if (rc.canWriteSharedArray(scoutedEnemyHqLocationIndex, locationToInt(rc, attackerIsAttackingThisLocation))) {
+                //rc.setIndicatorString("MADE IT HOME, depositing information to the array");
+                rc.writeSharedArray(scoutedEnemyHqLocationIndex, locationToInt(rc, attackerIsAttackingThisLocation));
+                rc.writeSharedArray(hqOrNotIndex, booleanToInt(scoutResultFromPossibleHqLocation));
+                scoutReturningHome = false;
             }
         }
     }
