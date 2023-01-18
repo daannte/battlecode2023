@@ -1067,7 +1067,13 @@ public strictfp class RobotPlayer {
      * @throws GameActionException from move()
      */
     static void attackerMoveToLocation(RobotController rc, MapLocation me) throws GameActionException {
-        if (me.isAdjacentTo(attackerIsAttackingThisLocation)) {
+        if (rc.canSenseLocation(attackerIsAttackingThisLocation)) {
+            if (rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) {
+                RobotInfo enemyHq = rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
+                if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared + 3)) {
+                    // vibe right outside the range of the attacking hq
+                }
+            }
             // vibe
         } else {
             moveToThisLocation(rc, attackerIsAttackingThisLocation);
