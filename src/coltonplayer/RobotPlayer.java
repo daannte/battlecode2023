@@ -2,7 +2,6 @@ package coltonplayer;
 
 import battlecode.common.*;
 
-import java.awt.*;
 import java.lang.reflect.Array;
 import java.util.*;
 
@@ -44,6 +43,7 @@ public strictfp class RobotPlayer {
     static int testCounter = 0;
     static boolean scoutResultFromPossibleHqLocation;
     static boolean scoutReturningHome = false;
+    static boolean attackerAttacked;
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
@@ -164,7 +164,7 @@ public strictfp class RobotPlayer {
             // put this hq into the array with our hq's
             storeOurHqToArray(rc, me);
 
-            middlePos = new MapLocation((int) Math.round((double) rc.getMapWidth() / 2), (int) Math.round((double) rc.getMapWidth() / 2));
+            middlePos = new MapLocation((int) Math.round( (double) width / 2), (int) Math.round( (double) height / 2));
 
             // put the enemy hq coords to possibleCoordsOfEnemyHqs and possibleCoordsOfEnemyHqsAlwaysThree
             addEnemyHqCoordsToTheStaticLists(width, height, me);
@@ -253,10 +253,6 @@ public strictfp class RobotPlayer {
             System.out.println("wrote to rewriteEnemyHqsIndex");
             rc.writeSharedArray(rewriteEnemyHqsIndex, rc.getRoundNum()+1);
         }
-
-
-
-        middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
 
         // Pick a direction to build in.
 
@@ -355,12 +351,12 @@ public strictfp class RobotPlayer {
      * This code is wrapped inside the infinite loop in run(), so it is called once per turn.
      */
     static void runCarrier(RobotController rc) throws GameActionException {
-        middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
         // System.out.println(middlePos);
         MapLocation me = rc.getLocation();
 
         if (turnCount == 1) {
             // guaranteed to be able to read this on turn 1 btw
+            middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapHeight() / 2));
             amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
             giveCallingRobotAListOfOurHqs(rc);
         }
@@ -478,18 +474,15 @@ public strictfp class RobotPlayer {
      */
     static void runLauncher(RobotController rc) throws GameActionException {
 
-        middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
         amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
         numOfEnemyHqsInArray = rc.readSharedArray(numOfEnemyHqsInArrayIndex);
         MapLocation me = rc.getLocation();
 
-        // on every turn, the attackers get an array of all the enemy hq locations in the array
-        //System.out.println("Before: " + coordsOfEnemyHqs);
-        //printSharedArray(rc);
+        // on every turn, the attackers get an array of all hq locations in the array
+
         giveCallingRobotAListOfEnemyHqs(rc);
         giveCallingRobotAListOfOurHqs(rc);
-        //System.out.println("After: " + coordsOfEnemyHqs);
-        //System.out.println(coordsOfEnemyHqs);
+
 
         // if # of our hqs == # of enemy hq locations in the array, those probable enemy locations are the real deal!
         if (amountOfHqsInThisGame == numOfEnemyHqsInArray) {
@@ -497,7 +490,7 @@ public strictfp class RobotPlayer {
         }
         if (turnCount == 1) {
             // SPAWNED :D
-            middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapWidth() / 2));
+            middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapHeight() / 2));
 
         }
 
@@ -514,14 +507,18 @@ public strictfp class RobotPlayer {
             attackerIsAttackingThisLocation = coordsOfEnemyHqs.get(rc.getID() % numOfEnemyHqsInArray);
         }
 
-        // rc.setIndicatorString("Atck " + closestEnemyHq);
-
         // try attacking before movement
         if (rc.isActionReady()) {
-            attackerAttackAround(rc);
+            ArrayList<Object> attackedInfo = attackerAttackAround(rc);
+            if (attackerAttacked) {
+                assert attackedInfo != null;
+                if (attackedInfo.get(1) == RobotType.LAUNCHER) {
+                    // if we attacked an attacker before moving, use the movement this turn to try to move away from them
+                    moveOppositeDirection(rc, (MapLocation) attackedInfo.get(0));
+                }
+            }
         }
 
-        //handle movement
         if (rc.isMovementReady()) {
             if (attackerIsAttackingThisLocation != null) {
                 if (enemyHqCoordsLocated) {
@@ -978,19 +975,19 @@ public strictfp class RobotPlayer {
      * @param rc RobotController
      * @throws GameActionException from senseNearbyRobots
      */
-    static void attackerAttackAround(RobotController rc) throws GameActionException {
+    static ArrayList<Object> attackerAttackAround(RobotController rc) throws GameActionException {
+        ArrayList<Object> output = new ArrayList<Object>();
+        attackerAttacked = false;
         int radius = rc.getType().actionRadiusSquared;
         Team opponent = rc.getTeam().opponent();
         RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
-        // rc.setIndicatorString(Arrays.toString(enemies));
-
         RobotInfo target = null;
 
         if (enemies.length > 0) {
-
             // the target is the random first in the array. Over each iteration, if another enemy in the array has
             // qualities that make it higher priority to attack than current target, then switch the target
 
+            // get the first non-hq as our first possible target
             for (RobotInfo enemy : enemies) {
                 if (enemy.getType() != RobotType.HEADQUARTERS) {
                     target = enemy;
@@ -1038,12 +1035,30 @@ public strictfp class RobotPlayer {
                 rc.setIndicatorString("TARGET: " + targetEnemyRobotType + " AT " + target.getLocation() + " WITH HEALTH: " + targetEnemyHealth + " DISTANCE: " + targetEnemyDistance);
             }
         }
-
         if (target != null) {
-            if (rc.canAttack(target.getLocation()))
+            if (rc.canAttack(target.getLocation())) {
                 rc.attack(target.getLocation());
+                attackerAttacked = true;
+                output.add(target.getLocation());
+                output.add(target.getType());
+                return output;
+            }
         }
+        return null;
     }
+
+    static void moveOppositeDirection(RobotController rc, MapLocation moveAwayFrom) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        Direction directionToAttacker = me.directionTo(moveAwayFrom);
+        Direction straightOpposite = directionToAttacker.rotateRight().rotateRight().rotateRight().rotateRight();
+        Direction almostOpposite1 = directionToAttacker.rotateRight().rotateRight().rotateRight();
+        Direction almostOpposite2 = directionToAttacker.rotateLeft().rotateLeft().rotateLeft();
+
+        if (rc.canMove(straightOpposite)) rc.move(straightOpposite);
+        else if (rc.canMove(almostOpposite1)) rc.move(almostOpposite1);
+        else if (rc.canMove(almostOpposite2)) rc.move(almostOpposite2);
+    }
+
 
     /**
      * moves attacker towards a location
@@ -1062,7 +1077,7 @@ public strictfp class RobotPlayer {
     /**
      * Sets scoutResultFromPossibleHqLocation true/false based on if we got to a possible hq location, if there actually
      * was a hq there or not. Sets scoutReturningHome to true if we found a possible
-     * @param rc
+     * @param rc RobotController
      * @throws GameActionException from reading array and sensing location
      */
     static void checkIfWeSeeAHqOnOurTravels(RobotController rc) throws GameActionException {
