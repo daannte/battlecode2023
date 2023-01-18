@@ -47,8 +47,10 @@ public strictfp class RobotPlayer {
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
-     * [0 ,    1-4     ,  5  ,       6-17       ,         18        ,         19          ,   20   ,     21         ,   22    ,     23     ,      24-63              ]
-     * ind  hq coords  #ofhqs  enemy hq coords   #ofenemyhqsInArray   AtckHQEvenlyCounter    sym   scoutedEnemyHqLoc  hqOrNot  rewriteEhQ's
+     * [0 ,    1-4     ,  5  ,       6-17       ,         18        ,         19          ,   20   ,     21         ,   22
+     * ind  hq coords  #ofhqs  enemy hq coords   #ofenemyhqsInArray   AtckHQEvenlyCounter    sym   scoutedEnemyHqLoc  hqOrNot
+     * ,     23     ,      24-63              ]
+     *  rewriteEhQ's
      */
     static final int hqStoringIndicatorIndex = 0;
     static final int hqCoordsStartingIndex = 1;
@@ -689,18 +691,19 @@ public strictfp class RobotPlayer {
      * @throws GameActionException from move()
      */
     static void moveRandomly(RobotController rc) throws GameActionException {
-        Direction randomDir = directions[rng.nextInt(directions.length)];
-        if (rc.canMove(randomDir)) {
-            rc.move(randomDir);
-            //rc.setIndicatorString("Moving " + dir);
+        for (Direction direction : directions) {
+            if (rc.canMove(direction)) {
+                rc.move(direction);
+                break;
+            }
         }
     }
 
     /**
      * try moving to this location
-     * @param rc
+     * @param rc RobotController
      * @param tryToMoveToThis location to move to
-     * @throws GameActionException
+     * @throws GameActionException form moving
      */
     static void moveToThisLocation(RobotController rc, MapLocation tryToMoveToThis) throws GameActionException {
         MapLocation me = rc.getLocation();
@@ -719,15 +722,11 @@ public strictfp class RobotPlayer {
                 break;
             }
             if (i == (moveDirs.length - 1)) {
-                Direction randomDir = directions[rng.nextInt(directions.length)];
-                if (rc.canMove(randomDir)) {
-                    rc.move(randomDir);
-                    // rc.setIndicatorString("Moving " + dir + " randomly");
-                }
+                moveRandomly(rc);
             }
         }
         if (rc.isMovementReady()) {
-            // rc.setIndicatorString("Didn't move, will change this later hopefully");
+            rc.setIndicatorString("Didn't move somehow");
         }
     }
 
@@ -1095,37 +1094,7 @@ public strictfp class RobotPlayer {
         if (me.isAdjacentTo(attackerIsAttackingThisLocation)) {
             // vibe
         } else {
-            // we aren't by the thing we wanna attack, move to it
-
-            // if we have enemy hq, move to it
-            // every attacker from this hq will just beeline its symmetrical enemy hq partner
-            Direction dir = me.directionTo(attackerIsAttackingThisLocation);
-            Direction[] moveDirs = new Direction[5];
-            moveDirs[0] = dir;
-            moveDirs[1] = dir.rotateRight();
-            moveDirs[2] = dir.rotateLeft();
-            moveDirs[3] = dir.rotateRight().rotateRight();
-            moveDirs[4] = dir.rotateLeft().rotateLeft();
-
-            for (int i = 0; i < moveDirs.length; i++) {
-                Direction moveDir = moveDirs[i];
-                if (rc.canMove(moveDir)) {
-                    rc.move(moveDir);
-                    // rc.setIndicatorString("Moving towards " + attackerIsAttackingThisLocation + " by going " + moveDir);
-                    break;
-                }
-                if (i == (moveDirs.length - 1)) {
-                    // couldn't move towards the location we wanna attack
-                    Direction randomDir = directions[rng.nextInt(directions.length)];
-                    if (rc.canMove(randomDir)) {
-                        rc.move(randomDir);
-                        // rc.setIndicatorString("Moving " + dir + " randomly");
-                    }
-                }
-            }
-            if (rc.isMovementReady()) {
-                // rc.setIndicatorString("Didn't move, will change this later hopefully");
-            }
+            moveToThisLocation(rc, attackerIsAttackingThisLocation);
         }
     }
 
