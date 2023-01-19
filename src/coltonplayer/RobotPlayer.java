@@ -219,7 +219,7 @@ public strictfp class RobotPlayer {
         if (rc.getRoundNum() == 3) {
             rewriteTheEnemyHqPositions(rc);
         }
-        rc.setIndicatorString(String.valueOf(rc.readSharedArray(rewriteEnemyHqsIndex)));
+        // rc.setIndicatorString(String.valueOf(rc.readSharedArray(rewriteEnemyHqsIndex)));
         if (rc.readSharedArray(rewriteEnemyHqsIndex) == rc.getRoundNum()) {
             System.out.println("rewriting the enemy hq positions");
             rc.setIndicatorString("rewriting the enemy hq positions");
@@ -230,11 +230,18 @@ public strictfp class RobotPlayer {
             }
         }
 
+
+
+
+        // WHY DOES NOT EVERY HQ MAKE ANOTHER GUESS HERE, FIGURE THAT OUT LATER
+
+
+        rc.setIndicatorString(String.valueOf(rc.readSharedArray(scoutedEnemyHqLocationIndex)));
         // if an attacker came back with enemy hq information, we can make another symmetry guess!
         if (rc.readSharedArray(scoutedEnemyHqLocationIndex) != 0) {
             System.out.println("got info from attackers");
             rc.setIndicatorString("GOT INFORMATION FROM THE ATTACKERS");
-            // an attacker deposited the information about one of our guessed for enemy hq locations! let's try to
+            // an attacker deposited the information about one of our guesses for enemy hq locations! let's try to
             // guess the symmetry again
             MapLocation scoutedMapPos = intToLocation(rc, rc.readSharedArray(scoutedEnemyHqLocationIndex));
             boolean hqOrNot = intToBoolean(rc.readSharedArray(hqOrNotIndex));
@@ -821,20 +828,18 @@ public strictfp class RobotPlayer {
             if (me.distanceSquaredTo(possibleHqPosition) <= 34) {
                 // if the possible hq position is in range of this hq
                 if (rc.canSenseRobotAtLocation(possibleHqPosition)) {
-                    if (rc.senseRobotAtLocation(possibleHqPosition).getType() == RobotType.HEADQUARTERS) {
-                        // if there's a headquarters at this location, great!
-                        RobotInfo enemyRobot = rc.senseRobotAtLocation(possibleHqPosition);
-                        // this possible hq spot is actually a hq!
-                        possibleCoordsOfEnemyHqs.clear();
-                        possibleCoordsOfEnemyHqs.add(enemyRobot.getLocation());
-                        theActualSymmetry.add(syms.get(i));
-                        // should be the symmetry of the map
-                        return theActualSymmetry;
-                    } else {
-                        // if there's no headquarters at this location, that's fine, we can narrow the possible spots down
-                        possibleCoordsOfEnemyHqs.remove(i);
-                        syms.remove(i);
-                    }
+                    // if there's a headquarters at this location, great!
+                    RobotInfo enemyRobot = rc.senseRobotAtLocation(possibleHqPosition);
+                    // this possible hq spot is actually a hq!
+                    possibleCoordsOfEnemyHqs.clear();
+                    possibleCoordsOfEnemyHqs.add(enemyRobot.getLocation());
+                    theActualSymmetry.add(syms.get(i));
+                    // should be the symmetry of the map
+                    return theActualSymmetry;
+                } else {
+                    // if there's no headquarters at this location, that's fine, we can narrow the possible spots down
+                    possibleCoordsOfEnemyHqs.remove(i);
+                    syms.remove(i);
                 }
             }
         }
