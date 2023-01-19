@@ -220,6 +220,7 @@ public strictfp class RobotPlayer {
             rewriteTheEnemyHqPositions(rc);
         }
         // rc.setIndicatorString(String.valueOf(rc.readSharedArray(rewriteEnemyHqsIndex)));
+
         if (rc.readSharedArray(rewriteEnemyHqsIndex) == rc.getRoundNum()) {
             System.out.println("rewriting the enemy hq positions");
             rc.setIndicatorString("rewriting the enemy hq positions");
@@ -259,10 +260,13 @@ public strictfp class RobotPlayer {
                     rc.setIndicatorDot(possibleCoordsOfEnemyHq, 0, 0, 255);
                 }
             }
-            rc.writeSharedArray(scoutedEnemyHqLocationIndex, 0);
-            rc.writeSharedArray(hqOrNotIndex, 0);
-            System.out.println("wrote to rewriteEnemyHqsIndex");
-            rc.writeSharedArray(rewriteEnemyHqsIndex, rc.getRoundNum()+1);
+            int teller = amountOfHqsInThisGame*2;
+            if ((rc.getID() == teller) || rc.getID() == (teller+1)) {
+                rc.writeSharedArray(scoutedEnemyHqLocationIndex, 0);
+                rc.writeSharedArray(hqOrNotIndex, 0);
+                System.out.println("wrote to rewriteEnemyHqsIndex");
+                rc.writeSharedArray(rewriteEnemyHqsIndex, rc.getRoundNum()+1);
+            }
         }
 
         // Pick a direction to build in.
@@ -564,6 +568,7 @@ public strictfp class RobotPlayer {
                                         GENERAL FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
 */
+
     /**
      * simply gives the calling robot the knowledge of where all of our hqs are, for ease of access later on shall we
      * need it. Sets the coordsOfOurHqs static list
@@ -722,6 +727,7 @@ public strictfp class RobotPlayer {
                                           HQ FUNCTIONS
 ------------------------------------------------------------------------------------------------------------------------
 */
+
     static void clearEnemyHqsFromTheSharedArray(RobotController rc) throws GameActionException {
         numOfEnemyHqsInArray = 0;
         rc.writeSharedArray(numOfEnemyHqsInArrayIndex, 0);
