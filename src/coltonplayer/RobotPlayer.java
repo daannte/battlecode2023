@@ -1208,14 +1208,26 @@ public strictfp class RobotPlayer {
         if (rc.canSenseLocation(attackerIsAttackingThisLocation)) {
             if (rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) {
                 RobotInfo enemyHq = rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
-                if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared + 1)) {
+                if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared)) {
                     // vibe right outside the range of the attacking hq
+                    rc.setIndicatorString("here");
+                    System.out.println("here");
+                    circleLocationBeingAttacked(rc, me, attackerIsAttackingThisLocation);
                 }
             }
             // vibe
         } else {
             moveToThisLocation(rc, attackerIsAttackingThisLocation);
         }
+    }
+
+    static void circleLocationBeingAttacked(RobotController rc, MapLocation me, MapLocation locationToSwarm) throws GameActionException {
+        Direction directionToAttacker = me.directionTo(locationToSwarm);
+        Direction straightLeft = directionToAttacker.rotateLeft().rotateLeft();
+        Direction backLeft = directionToAttacker.rotateLeft().rotateLeft().rotateLeft();
+        rc.setIndicatorString("" + straightLeft + " | " + backLeft);
+        if (rc.canMove(straightLeft)) rc.move(straightLeft);
+        else if (rc.canMove(backLeft)) rc.move(backLeft);
     }
 
     /**
