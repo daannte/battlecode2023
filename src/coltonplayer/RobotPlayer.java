@@ -19,6 +19,7 @@ public strictfp class RobotPlayer {
      * these variables are static, in Battlecode they aren't actually shared between your robots.
      */
     static int turnCount = 0;
+    static int funnyTurnCountHeHe = 1;
     static int carriersThisHqHasBuilt = 0;
     static int attackersThisHqHasBuilt = 0;
     static ArrayList<String> syms = new ArrayList<String>();
@@ -292,11 +293,14 @@ public strictfp class RobotPlayer {
 
         //build attackers and carriers after this
 
-
-        if ((rc.getRoundNum() % 40 == 0) && rc.getRoundNum() >= (int) ((width + height) * 2.5)) {
+        if ((funnyTurnCountHeHe % 30 == 0) && rc.getRoundNum() >= (int) ((width + height) * 2.5)) {
             weShouldBuildAnAnchor = true;
         }
-        rc.setIndicatorString(String.valueOf(weShouldBuildAnAnchor));
+
+        funnyTurnCountHeHe++;
+        if (weShouldBuildAnAnchor) funnyTurnCountHeHe--;
+
+        rc.setIndicatorString("" + weShouldBuildAnAnchor + " | " + funnyTurnCountHeHe);
 
         for (int i = 0; i < 5; i++) {
             // can spawn up to 5 dudes a turn
@@ -311,6 +315,7 @@ public strictfp class RobotPlayer {
                     if (rc.canBuildAnchor(Anchor.STANDARD)) {
                         rc.buildAnchor(Anchor.STANDARD);
                         weShouldBuildAnAnchor = false;
+                        funnyTurnCountHeHe++;
                     }
                     if ((rc.getResourceAmount(ResourceType.MANA) - RobotType.LAUNCHER.getBuildCost(ResourceType.MANA)) > Anchor.STANDARD.getBuildCost(ResourceType.MANA)) {
                         spawnADude(rc, attackerSpawnLocs, RobotType.LAUNCHER);
@@ -319,6 +324,7 @@ public strictfp class RobotPlayer {
                         spawnADude(rc, carrierSpawnLocs, RobotType.CARRIER);
                     }
                 } else {
+
                     // keep roughly 1/1.4 carrier/attacker ratio
                     if (((carriersThisHqHasBuilt) >= (int) (attackersThisHqHasBuilt * 2)) && (rc.getResourceAmount(ResourceType.MANA) > 60)) {
                         spawnADude(rc, attackerSpawnLocs, RobotType.LAUNCHER);
