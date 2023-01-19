@@ -1,10 +1,9 @@
-package coltonplayer;
+package copythisbot;
 
 import battlecode.common.*;
 
-import java.awt.*;
-import java.lang.reflect.Array;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Random;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
