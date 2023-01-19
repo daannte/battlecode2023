@@ -1206,14 +1206,20 @@ public strictfp class RobotPlayer {
      */
     static void attackerMoveToLocation(RobotController rc, MapLocation me) throws GameActionException {
         if (rc.canSenseLocation(attackerIsAttackingThisLocation)) {
-            if (rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) {
-                RobotInfo enemyHq = rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
-                if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared)) {
+            //rc.setIndicatorString("here1");
+            RobotInfo enemyHq = rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
+            rc.setIndicatorString("" + String.valueOf(rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) + " | " + me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared));
+            if ((rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) && (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared + 4))) {
+                //rc.setIndicatorString("here2");
+                //if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared)) {
+                //if (attackerIsAttackingThisLocation.isWithinDistanceSquared(me, enemyHq.getType().actionRadiusSquared + 1)) {
                     // vibe right outside the range of the attacking hq
-                    rc.setIndicatorString("here");
-                    System.out.println("here");
+                    //rc.setIndicatorString("here3");
+                    //System.out.println("here");
                     circleLocationBeingAttacked(rc, me, attackerIsAttackingThisLocation);
-                }
+                //}
+            } else {
+                moveToThisLocation(rc, attackerIsAttackingThisLocation);
             }
             // vibe
         } else {
@@ -1228,6 +1234,7 @@ public strictfp class RobotPlayer {
         rc.setIndicatorString("" + straightLeft + " | " + backLeft);
         if (rc.canMove(straightLeft)) rc.move(straightLeft);
         else if (rc.canMove(backLeft)) rc.move(backLeft);
+        //if (rc.canMove(backLeft)) rc.move(backLeft);
     }
 
     /**
