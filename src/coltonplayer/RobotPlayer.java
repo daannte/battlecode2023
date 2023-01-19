@@ -183,15 +183,13 @@ public strictfp class RobotPlayer {
 
             giveCallingRobotAListOfOurHqs(rc);
 
-            addEnemyHqCoordsToTheStaticLists(width, height, me);
+            addEnemyHqCoordsToTheStaticListsAndSyms(width, height, me);
+            System.out.println("After: " + possibleCoordsOfEnemyHqs + " | " + syms);
 
             // guess the symmetry based on only our starting hq positions
             // syms = guessSymmetryBasedOnOurInitialHqLocations();
             // rc.setIndicatorString(syms.toString());
-            syms.add("V");
-            syms.add("H");
-            syms.add("R");
-            //System.out.println("syms rn: " + syms);
+
             if (syms.size() > 1) {
                 //symmetry wasn't guessed just based on our initialHqPositions, so try another way
                 //System.out.println("Before" + syms);
@@ -232,11 +230,11 @@ public strictfp class RobotPlayer {
             }
         }
 
-        rc.setIndicatorString(String.valueOf(rc.readSharedArray(scoutedEnemyHqLocationIndex)));
+        //rc.setIndicatorString(String.valueOf(rc.readSharedArray(scoutedEnemyHqLocationIndex)));
         // if an attacker came back with enemy hq information, we can make another symmetry guess!
         if (rc.readSharedArray(scoutedEnemyHqLocationIndex) != 0) {
             System.out.println("got info from attackers");
-            rc.setIndicatorString("GOT INFORMATION FROM THE ATTACKERS");
+            //rc.setIndicatorString("GOT INFORMATION FROM THE ATTACKERS");
             // an attacker deposited the information about one of our guesses for enemy hq locations! let's try to
             // guess the symmetry again
             MapLocation scoutedMapPos = intToLocation(rc, rc.readSharedArray(scoutedEnemyHqLocationIndex));
@@ -294,10 +292,11 @@ public strictfp class RobotPlayer {
 
         //build attackers and carriers after this
 
-        boolean weShouldBuildAnAnchor = false;
-        if ((rc.getRoundNum() % 50 == 0) && rc.getRoundNum() >= 100) {
+
+        if ((rc.getRoundNum() % 40 == 0) && rc.getRoundNum() >= (int) ((width + height) * 2.5)) {
             weShouldBuildAnAnchor = true;
         }
+        rc.setIndicatorString(String.valueOf(weShouldBuildAnAnchor));
 
         for (int i = 0; i < 5; i++) {
             // can spawn up to 5 dudes a turn
@@ -311,6 +310,7 @@ public strictfp class RobotPlayer {
                 if (weShouldBuildAnAnchor) {
                     if (rc.canBuildAnchor(Anchor.STANDARD)) {
                         rc.buildAnchor(Anchor.STANDARD);
+                        weShouldBuildAnAnchor = false;
                     }
                     if ((rc.getResourceAmount(ResourceType.MANA) - RobotType.LAUNCHER.getBuildCost(ResourceType.MANA)) > Anchor.STANDARD.getBuildCost(ResourceType.MANA)) {
                         spawnADude(rc, attackerSpawnLocs, RobotType.LAUNCHER);
@@ -319,8 +319,8 @@ public strictfp class RobotPlayer {
                         spawnADude(rc, carrierSpawnLocs, RobotType.CARRIER);
                     }
                 } else {
-                    //build one at random
-                    if (rng.nextBoolean()) {
+                    // keep roughly 1/1.4 carrier/attacker ratio
+                    if (((carriersThisHqHasBuilt) >= (int) (attackersThisHqHasBuilt * 2)) && (rc.getResourceAmount(ResourceType.MANA) > 60)) {
                         spawnADude(rc, attackerSpawnLocs, RobotType.LAUNCHER);
                     } else {
                         spawnADude(rc, carrierSpawnLocs, RobotType.CARRIER);
@@ -814,7 +814,10 @@ public strictfp class RobotPlayer {
      * @param height height of the map
      * @param me this robots location
      */
-    static void addEnemyHqCoordsToTheStaticLists(int width, int height, MapLocation me) {
+    static void addEnemyHqCoordsToTheStaticListsAndSyms(int width, int height, MapLocation me) {
+        syms.add("V");
+        syms.add("H");
+        syms.add("R");
         // this block puts the three possible locations the enemy hq can be based on its position into a list
         //horizontal possible loc
         possibleEnemyHqFromVSym = new MapLocation((width - me.x) - 1 , me.y);
@@ -830,10 +833,38 @@ public strictfp class RobotPlayer {
         possibleCoordsOfEnemyHqsAlwaysThree.add(possibleEnemyHqFromRSym);
         //System.out.println(coordsOfOurHqs);
         //System.out.println(possibleCoordsOfEnemyHqs);
+
+        System.out.println("Before: " + possibleCoordsOfEnemyHqs + " | " + syms);
+
+        ArrayList<MapLocation> outputLocs = new ArrayList<>();
+        ArrayList<String> outputSyms = new ArrayList<>();
+
+//        for (MapLocation coordsOfOurHq : coordsOfOurHqs) {
+//            for (int i = 0; i < possibleCoordsOfEnemyHqs.size(); i++) {
+//                MapLocation possibleCoordsOfEnemyHq = possibleCoordsOfEnemyHqs.get(i);
+//                if (!coordsOfOurHq.equals(possibleCoordsOfEnemyHq)) {
+//                    outputLocs.add(possibleCoordsOfEnemyHq);
+//                    outputSyms.add(syms.get(i));
+////                    possibleCoordsOfEnemyHqs.remove(possibleCoordsOfEnemyHq);
+////                    syms.remove(i);
+//                }
+//            }
+//            //possibleCoordsOfEnemyHqs.removeIf(possibleCoordsOfEnemyHq -> possibleCoordsOfEnemyHq.equals(coordsOfOurHq));
+//        }
+//        possibleCoordsOfEnemyHqs = outputLocs;
+//        syms = outputSyms;
+
         for (MapLocation coordsOfOurHq : coordsOfOurHqs) {
-            //System.out.println(possibleCoordsOfEnemyHq + " | " + coordsOfOurHq);
-            //System.out.println("THEY ARE EQUAL");
-            possibleCoordsOfEnemyHqs.removeIf(possibleCoordsOfEnemyHq -> possibleCoordsOfEnemyHq.equals(coordsOfOurHq));
+            int counter = 0;
+            for (Iterator<MapLocation> iterator = possibleCoordsOfEnemyHqs.iterator(); iterator.hasNext(); ) {
+                MapLocation possibleCoordsOfEnemyHq = iterator.next();
+                if (possibleCoordsOfEnemyHq.equals(coordsOfOurHq)) {
+                    // Remove the current element from the iterator and the list.
+                    iterator.remove();
+                    syms.remove(counter);
+                }
+                counter++;
+            }
         }
     }
 
