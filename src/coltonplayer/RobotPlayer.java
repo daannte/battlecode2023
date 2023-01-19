@@ -191,14 +191,18 @@ public strictfp class RobotPlayer {
             // syms = guessSymmetryBasedOnOurInitialHqLocations();
             // rc.setIndicatorString(syms.toString());
 
-            if (syms.size() > 1) {
+//            if (possibleCoordsOfEnemyHqs.size() > 1) {
+//                guessSymmetryBasedOnDoubleSymEdgeCase(rc);
+//            }
+
+            if (possibleCoordsOfEnemyHqs.size() > 1) {
                 //symmetry wasn't guessed just based on our initialHqPositions, so try another way
                 //System.out.println("Before" + syms);
                 syms = guessSymmetryBasedOnEnemyHqsWeCanSee(rc);
                 //System.out.println("After" + syms);
             }
 
-            if (syms.size() == 1) {
+            if (possibleCoordsOfEnemyHqs.size() == 1) {
                 enemyHqCoordsLocated = true;
                 writeTheSymToSharedArray(rc, syms.get(0));
                 // we found the symmetry
@@ -235,7 +239,7 @@ public strictfp class RobotPlayer {
         // if an attacker came back with enemy hq information, we can make another symmetry guess!
         if (rc.readSharedArray(scoutedEnemyHqLocationIndex) != 0) {
             System.out.println("got info from attackers");
-            //rc.setIndicatorString("GOT INFORMATION FROM THE ATTACKERS");
+            rc.setIndicatorString("GOT INFORMATION FROM THE ATTACKERS");
             // an attacker deposited the information about one of our guesses for enemy hq locations! let's try to
             // guess the symmetry again
             MapLocation scoutedMapPos = intToLocation(rc, rc.readSharedArray(scoutedEnemyHqLocationIndex));
@@ -304,7 +308,7 @@ public strictfp class RobotPlayer {
         funnyTurnCountHeHe++;
         if (weShouldBuildAnAnchor) funnyTurnCountHeHe--;
 
-        rc.setIndicatorString("" + weShouldBuildAnAnchor + " | " + funnyTurnCountHeHe);
+        //rc.setIndicatorString("" + weShouldBuildAnAnchor + " | " + funnyTurnCountHeHe);
 
         for (int i = 0; i < 5; i++) {
             // can spawn up to 5 dudes a turn
@@ -845,9 +849,70 @@ public strictfp class RobotPlayer {
 
         System.out.println("Before: " + possibleCoordsOfEnemyHqs + " | " + syms);
 
-        ArrayList<MapLocation> outputLocs = new ArrayList<>();
-        ArrayList<String> outputSyms = new ArrayList<>();
+//        ArrayList<MapLocation> loopLocs = possibleCoordsOfEnemyHqs;
+//        ArrayList<String> loopSyms = syms;
 
+        ArrayList<MapLocation> loopLocs = new ArrayList<>();
+        ArrayList<String> loopSyms = new ArrayList<>();
+
+        for (MapLocation possibleCoordsOfEnemyHq : possibleCoordsOfEnemyHqs) {
+            loopLocs.add(possibleCoordsOfEnemyHq);
+        }
+        for (String sym : syms) {
+            loopSyms.add(sym);
+        }
+
+        boolean takeOne = false;
+
+        for (MapLocation coordsOfOurHq : coordsOfOurHqs) {
+            for (MapLocation possibleCoordsOfEnemyHq : loopLocs) {
+                if (possibleCoordsOfEnemyHq.equals(coordsOfOurHq)) {
+                    takeOne = true;
+                    possibleCoordsOfEnemyHqs.remove(possibleCoordsOfEnemyHq);
+                    syms.remove(loopSyms.get(0));
+                }
+            }
+        }
+
+        //System.out.println("They're equal");
+
+
+        if (takeOne) {
+            MapLocation temp = possibleCoordsOfEnemyHqs.get(0);
+            possibleCoordsOfEnemyHqs.clear();
+            possibleCoordsOfEnemyHqs.add(temp);
+            String temp2 = syms.get(0);
+            syms.clear();
+            syms.add(temp2);
+        }
+
+
+
+//        HashSet<MapLocation> outputLocs = new HashSet<>();
+//        HashSet<String> outputSyms = new HashSet<>();
+//
+//        boolean predictionOverlapWithOurHqs = false;
+//
+//        for (MapLocation coordsOfOurHq : coordsOfOurHqs) {
+//            for (int i = 0; i < coordsOfEnemyHqs.size(); i++) {
+//                MapLocation coordsOfEnemyHq = coordsOfEnemyHqs.get(0);
+//                if (coordsOfEnemyHq.equals(coordsOfOurHq)) {
+//                    predictionOverlapWithOurHqs = true;
+//                } else {
+//                    outputLocs.add(coordsOfEnemyHq);
+//                    outputSyms.add(syms.get(i));
+//                }
+//            }
+//        }
+//        if (predictionOverlapWithOurHqs) {
+//            possibleCoordsOfEnemyHqs.clear();
+//            possibleCoordsOfEnemyHqs.add(outputLocs.)
+//        }
+
+//        ArrayList<MapLocation> outputLocs = possibleCoordsOfEnemyHqs;
+//        ArrayList<String> outputSyms = syms;
+//
+//        boolean needToUse = false;
 //        for (MapLocation coordsOfOurHq : coordsOfOurHqs) {
 //            for (int i = 0; i < possibleCoordsOfEnemyHqs.size(); i++) {
 //                MapLocation possibleCoordsOfEnemyHq = possibleCoordsOfEnemyHqs.get(i);
@@ -856,26 +921,36 @@ public strictfp class RobotPlayer {
 //                    outputSyms.add(syms.get(i));
 ////                    possibleCoordsOfEnemyHqs.remove(possibleCoordsOfEnemyHq);
 ////                    syms.remove(i);
+//                } else {
+//                    System.out.println("THEY EQUAL");
+//                    needToUse = true;
 //                }
 //            }
-//            //possibleCoordsOfEnemyHqs.removeIf(possibleCoordsOfEnemyHq -> possibleCoordsOfEnemyHq.equals(coordsOfOurHq));
-//        }
-//        possibleCoordsOfEnemyHqs = outputLocs;
-//        syms = outputSyms;
-
-        for (MapLocation coordsOfOurHq : coordsOfOurHqs) {
-            int counter = 0;
-            for (Iterator<MapLocation> iterator = possibleCoordsOfEnemyHqs.iterator(); iterator.hasNext(); ) {
-                MapLocation possibleCoordsOfEnemyHq = iterator.next();
-                if (possibleCoordsOfEnemyHq.equals(coordsOfOurHq)) {
-                    // Remove the current element from the iterator and the list.
-                    iterator.remove();
-                    syms.remove(counter);
-                }
-                counter++;
-            }
+            //possibleCoordsOfEnemyHqs.removeIf(possibleCoordsOfEnemyHq -> possibleCoordsOfEnemyHq.equals(coordsOfOurHq));
         }
-    }
+//        if (needToUse) {
+//            possibleCoordsOfEnemyHqs.clear();
+//            possibleCoordsOfEnemyHqs.add(outputLocs.get(0));
+//            syms.clear();
+//            syms.add(outputSyms.get(0));
+//        } else {
+//            possibleCoordsOfEnemyHqs = outputLocs;
+//            syms = outputSyms;
+//        }
+
+//        for (MapLocation coordsOfOurHq : coordsOfOurHqs) {
+//            int counter = 0;
+//            for (Iterator<MapLocation> iterator = possibleCoordsOfEnemyHqs.iterator(); iterator.hasNext(); ) {
+//                MapLocation possibleCoordsOfEnemyHq = iterator.next();
+//                if (possibleCoordsOfEnemyHq.equals(coordsOfOurHq)) {
+//                    System.out.println("GUESS EQUAL TO OUR HQ, REMOVE THAT");
+//                    // Remove the current element from the iterator and the list.
+//                    iterator.remove();
+//                    syms.remove(counter);
+//                }
+//                counter++;
+//            }
+//        }
 
     /**
      * guess the symmetry of the map, only knowing our hq locations
@@ -959,8 +1034,12 @@ public strictfp class RobotPlayer {
         return syms;
     }
 
+//    static ArrayList<String> guessSymmetryBasedOnDoubleSymEdgeCase(RobotController rc) {
+//
+//    }
+
     static ArrayList<String> guessSymmetryBasedOnAttackerDepositedInformation(RobotController rc, MapLocation scoutedMapPos, boolean ifThereWasAHqThereOrNot) {
-        System.out.println("Before: " + possibleCoordsOfEnemyHqs);
+        System.out.println("Before (attacker info): " + possibleCoordsOfEnemyHqs + " | " + syms);
         ArrayList<String> theActualSymmetry = new ArrayList<>();
         for (int i = 0; i < possibleCoordsOfEnemyHqs.size(); i++) {
             MapLocation possibleHqPosition = possibleCoordsOfEnemyHqs.get(i);
@@ -972,6 +1051,7 @@ public strictfp class RobotPlayer {
                     possibleCoordsOfEnemyHqs.add(scoutedMapPos);
                     theActualSymmetry.add(syms.get(i));
                     // should be the symmetry of the map
+                    System.out.println("After (attacker info): " + possibleCoordsOfEnemyHqs + " | " + syms);
                     return theActualSymmetry;
                 } else {
                     // if there's no headquarters at this location, that's fine, we can narrow the possible spots down
@@ -980,6 +1060,7 @@ public strictfp class RobotPlayer {
                 }
             }
         }
+        System.out.println("After (attacker info): " + possibleCoordsOfEnemyHqs + " | " + syms);
         return syms;
     }
 
@@ -1208,7 +1289,7 @@ public strictfp class RobotPlayer {
         if (rc.canSenseLocation(attackerIsAttackingThisLocation)) {
             //rc.setIndicatorString("here1");
             RobotInfo enemyHq = rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
-            rc.setIndicatorString("" + String.valueOf(rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) + " | " + me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared));
+            //rc.setIndicatorString("" + String.valueOf(rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) + " | " + me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared));
             if ((rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) && (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared + 4))) {
                 //rc.setIndicatorString("here2");
                 //if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared)) {
