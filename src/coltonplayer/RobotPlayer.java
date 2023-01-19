@@ -19,7 +19,7 @@ public strictfp class RobotPlayer {
      * these variables are static, in Battlecode they aren't actually shared between your robots.
      */
     static int turnCount = 0;
-    static int funnyTurnCountHeHe = 1;
+    static int funnyTurnCountHeHe = 0;
     static int carriersThisHqHasBuilt = 0;
     static int attackersThisHqHasBuilt = 0;
     static ArrayList<String> syms = new ArrayList<String>();
@@ -293,7 +293,11 @@ public strictfp class RobotPlayer {
 
         //build attackers and carriers after this
 
-        if ((funnyTurnCountHeHe % 30 == 0) && rc.getRoundNum() >= (int) ((width + height) * 2.5)) {
+        if (!(rc.getRoundNum() >= (int) ((width + height) * 2.5))) {
+            funnyTurnCountHeHe--;
+        }
+
+        if (funnyTurnCountHeHe % 30 == 0) {
             weShouldBuildAnAnchor = true;
         }
 
@@ -324,9 +328,8 @@ public strictfp class RobotPlayer {
                         spawnADude(rc, carrierSpawnLocs, RobotType.CARRIER);
                     }
                 } else {
-
-                    // keep roughly 1/1.4 carrier/attacker ratio
-                    if (((carriersThisHqHasBuilt) >= (int) (attackersThisHqHasBuilt * 2)) && (rc.getResourceAmount(ResourceType.MANA) > 60)) {
+                    // keep roughly 1/1.6 carrier/attacker ratio
+                    if (((carriersThisHqHasBuilt) >= (int) (attackersThisHqHasBuilt * 1.6)) && (rc.getResourceAmount(ResourceType.MANA) > 60)) {
                         spawnADude(rc, attackerSpawnLocs, RobotType.LAUNCHER);
                     } else {
                         spawnADude(rc, carrierSpawnLocs, RobotType.CARRIER);
