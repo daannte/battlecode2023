@@ -33,6 +33,7 @@ public strictfp class RobotPlayer {
     static MapLocation possibleEnemyHqFromVSym;
     static MapLocation possibleEnemyHqFromHSym;
     static MapLocation possibleEnemyHqFromRSym;
+    static final int hqsStillProcessingAttackerInfo = 6969;
     static boolean symmetryFound;
     static int amountOfHqsThisHqKnows;
     static int amountOfHqsInThisGame;
@@ -228,6 +229,7 @@ public strictfp class RobotPlayer {
             int teller = amountOfHqsInThisGame*2;
             if ((rc.getID() == teller) || rc.getID() == (teller+1)) {
                 rc.writeSharedArray(rewriteEnemyHqsIndex, 0);
+                rc.writeSharedArray(scoutedEnemyHqLocationIndex, 0);
             }
         }
 
@@ -240,7 +242,9 @@ public strictfp class RobotPlayer {
             // guess the symmetry again
             MapLocation scoutedMapPos = intToLocation(rc, rc.readSharedArray(scoutedEnemyHqLocationIndex));
             boolean hqOrNot = intToBoolean(rc.readSharedArray(hqOrNotIndex));
+            System.out.println("syms before: " + syms);
             syms = guessSymmetryBasedOnAttackerDepositedInformation(rc, scoutedMapPos, hqOrNot);
+            System.out.println("syms after: " + syms);
 
             if (syms.size() == 1) {
                 enemyHqCoordsLocated = true;
@@ -256,7 +260,8 @@ public strictfp class RobotPlayer {
             }
             int teller = amountOfHqsInThisGame*2;
             if ((rc.getID() == teller) || rc.getID() == (teller+1)) {
-                rc.writeSharedArray(scoutedEnemyHqLocationIndex, 0);
+                System.out.println("I am writing 6969 to the scoutedEnemyHqIndex so our hqs dont get overloaded with info fr");
+                rc.writeSharedArray(scoutedEnemyHqLocationIndex, 6969);
                 rc.writeSharedArray(hqOrNotIndex, 0);
                 //System.out.println("wrote to rewriteEnemyHqsIndex");
                 rc.writeSharedArray(rewriteEnemyHqsIndex, rc.getRoundNum()+1);
@@ -293,11 +298,11 @@ public strictfp class RobotPlayer {
 
         //build attackers and carriers after this
 
-        if (!(rc.getRoundNum() >= (int) ((width + height) * 2.5))) {
+        if (!(rc.getRoundNum() >= (int) ((width + height) * 3))) {
             funnyTurnCountHeHe--;
         }
 
-        if (funnyTurnCountHeHe % 30 == 0) {
+        if ((funnyTurnCountHeHe % 30 == 0) && ((rc.getNumAnchors(Anchor.STANDARD) == 0) && (rc.getNumAnchors(Anchor.ACCELERATING) == 0))) {
             weShouldBuildAnAnchor = true;
         }
 
@@ -337,57 +342,6 @@ public strictfp class RobotPlayer {
                 }
             }
         }
-
-        // printSharedArray(rc);
-
-//        //MapLocation attackerSpawnLocation = me.add(me.directionTo(middlePos)).add(me.directionTo(middlePos));
-//        MapLocation attackerSpawnLocation = me.add(me.directionTo(middlePos));
-//
-//        rc.setIndicatorString(attackerSpawnLocation.toString());
-//        MapLocation carrierSpawnLocationClose = attackerSpawnLocation;
-//        MapLocation carrierSpawnLocationFar = attackerSpawnLocation;
-//
-//        WellInfo[] wells = rc.senseNearbyWells(RobotType.HEADQUARTERS.visionRadiusSquared);
-//        if (wells.length > 0) {
-////            for (WellInfo well : wells) {
-////                Direction closestToWell = me.directionTo(well.getMapLocation());
-////                carrierSpawnLocationClose = me.add(closestToWell);
-////                carrierSpawnLocationFar = carrierSpawnLocationClose.add(closestToWell);
-////            }
-//            carrierSpawnLocationClose = me.add(me.directionTo(wells[0].getMapLocation()));
-//            carrierSpawnLocationFar = carrierSpawnLocationClose.add(me.directionTo(wells[0].getMapLocation()));
-//        }
-//        if (turnCount <= 3) {
-//            Direction dir = me.directionTo(middlePos);
-//            Direction[] moveDirs = new Direction[5];
-//            moveDirs[0] = dir;
-//            moveDirs[1] = dir.rotateRight();
-//            moveDirs[2] = dir.rotateLeft();
-//            if (rc.canBuildRobot(RobotType.LAUNCHER, attackerSpawnLocation)){
-//                rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
-//                rc.setIndicatorString("Spawned attacker at " + attackerSpawnLocation);
-//                // increment the AttackHqEvenlyCounter
-//                rc.writeSharedArray(18, rc.readSharedArray(18) + 1);
-//            }
-//        } else if (turnCount <= 7) {
-//            if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationFar)) {
-//                rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationFar);
-//            } else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
-//                rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationClose);
-//            }
-//        } else {
-//            if (rc.canBuildRobot(RobotType.LAUNCHER, attackerSpawnLocation)) {
-//                rc.buildRobot(RobotType.LAUNCHER, attackerSpawnLocation);
-//                rc.setIndicatorString("Spawned attacker at " + attackerSpawnLocation);
-//                // increment the AttackHqEvenlyCounter
-//                rc.writeSharedArray(18, rc.readSharedArray(18) + 1);
-//            }
-//            else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationFar)) {
-//                rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationFar);
-//            } else if (rc.canBuildRobot(RobotType.CARRIER, carrierSpawnLocationClose)) {
-//                rc.buildRobot(RobotType.CARRIER, carrierSpawnLocationClose);
-//            }
-//        }
         // printSharedArray(rc);
     }
 
@@ -418,29 +372,6 @@ public strictfp class RobotPlayer {
         } else {
             carryingAnAnchor = false;
         }
-//        if (rc.getAnchor() != null) {
-//            // If I have an anchor singularly focus on getting it to the first island I see
-//            int[] islands = rc.senseNearbyIslands();
-//            Set<MapLocation> islandLocs = new HashSet<>();
-//            for (int id : islands) {
-//                MapLocation[] thisIslandLocs = rc.senseNearbyIslandLocations(id);
-//                islandLocs.addAll(Arrays.asList(thisIslandLocs));
-//            }
-//            if (islandLocs.size() > 0) {
-//                MapLocation islandLocation = islandLocs.iterator().next();
-//                rc.setIndicatorString("Moving my anchor towards " + islandLocation);
-//                while (!rc.getLocation().equals(islandLocation)) {
-//                    Direction dir = rc.getLocation().directionTo(islandLocation);
-//                    if (rc.canMove(dir)) {
-//                        rc.move(dir);
-//                    }
-//                }
-//                if (rc.canPlaceAnchor()) {
-//                    rc.setIndicatorString("Huzzah, placed anchor!");
-//                    rc.placeAnchor();
-//                }
-//            }
-//        }
         
         // If we can see a well, move towards it
         if (carryingAnAnchor) {
@@ -459,10 +390,9 @@ public strictfp class RobotPlayer {
                     break;
                 }
             }
-        }
-        if (!carryingAnAnchor) {
-        int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
-        int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
+        } else {
+            int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
+            int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
 
             if ((amountOfAdamantium + amountOfMana) < 40) {
                 // needa find a well
@@ -532,12 +462,10 @@ public strictfp class RobotPlayer {
                 }
             }
         }
-
         // move randomly if we want to move but couldn't find a valid spot
-        Direction dir = directions[rng.nextInt(directions.length)];
-        if (rc.isMovementReady() && rc.canMove(dir) && !dontMove) {
+        if (rc.isMovementReady() && !dontMove) {
             //System.out.println(rc.canMove(dir));
-            rc.move(dir);
+            moveRandomly(rc);
             //rc.setIndicatorString("Moving " + dir);
         }
     }
@@ -723,7 +651,10 @@ public strictfp class RobotPlayer {
      * @throws GameActionException from move()
      */
     static void moveRandomly(RobotController rc) throws GameActionException {
-        for (Direction direction : directions) {
+        //HashSet<Direction> random = new HashSet<Direction>(Arrays.asList(directions));
+        ArrayList<Direction> random = new ArrayList<Direction>(Arrays.asList(directions));
+        Collections.shuffle(random);
+        for (Direction direction : random) {
             if (rc.canMove(direction)) {
                 rc.move(direction);
                 break;
@@ -958,10 +889,6 @@ public strictfp class RobotPlayer {
         // return original symmetry if we couldn't guess it here
         return syms;
     }
-
-//    static ArrayList<String> guessSymmetryBasedOnDoubleSymEdgeCase(RobotController rc) {
-//
-//    }
 
     static ArrayList<String> guessSymmetryBasedOnAttackerDepositedInformation(RobotController rc, MapLocation scoutedMapPos, boolean ifThereWasAHqThereOrNot) {
         //System.out.println("Before (attacker info): " + possibleCoordsOfEnemyHqs + " | " + syms);
@@ -1215,15 +1142,18 @@ public strictfp class RobotPlayer {
             //rc.setIndicatorString("here1");
             RobotInfo enemyHq = rc.senseRobotAtLocation(attackerIsAttackingThisLocation);
             //rc.setIndicatorString("" + String.valueOf(rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) + " | " + me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared));
-            if ((rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) && (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared + 4))) {
+            if ((rc.senseRobotAtLocation(attackerIsAttackingThisLocation).getType() == RobotType.HEADQUARTERS) && (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, (enemyHq.getType().actionRadiusSquared + 12)))) {
                 //rc.setIndicatorString("here2");
                 //if (me.isWithinDistanceSquared(attackerIsAttackingThisLocation, enemyHq.getType().actionRadiusSquared)) {
                 //if (attackerIsAttackingThisLocation.isWithinDistanceSquared(me, enemyHq.getType().actionRadiusSquared + 1)) {
                     // vibe right outside the range of the attacking hq
                     //rc.setIndicatorString("here3");
                     //System.out.println("here");
-                    circleLocationBeingAttacked(rc, me, attackerIsAttackingThisLocation);
+                    //circleLocationBeingAttacked(rc, me, attackerIsAttackingThisLocation);
                 //}
+                if ((me.isWithinDistanceSquared(attackerIsAttackingThisLocation, (enemyHq.getType().actionRadiusSquared)))) {
+                    moveOppositeDirection(rc, attackerIsAttackingThisLocation);
+                }
             } else {
                 moveToThisLocation(rc, attackerIsAttackingThisLocation);
             }
@@ -1277,7 +1207,7 @@ public strictfp class RobotPlayer {
     static void didScoutMakeItHome(RobotController rc, MapLocation hqPos, MapLocation me) throws GameActionException {
         if (hqPos.isWithinDistanceSquared(me, GameConstants.DISTANCE_SQUARED_FROM_HEADQUARTER)) {
             //rc.setIndicatorString("in range of hq, but cant write.....");
-            if (rc.readSharedArray(scoutedEnemyHqLocationIndex) == 0) {
+            if ((rc.readSharedArray(scoutedEnemyHqLocationIndex) == 0) && (rc.readSharedArray(scoutedEnemyHqLocationIndex) != hqsStillProcessingAttackerInfo)) {
                 // only write what u got if hqs aren't currently calculating another attackers findings
                 if (rc.canWriteSharedArray(scoutedEnemyHqLocationIndex, locationToInt(rc, attackerIsAttackingThisLocation))) {
                     //rc.setIndicatorString("MADE IT HOME, depositing information to the array");
