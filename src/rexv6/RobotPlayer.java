@@ -1,4 +1,4 @@
-package copythisbot;
+package rexv6;
 
 import battlecode.common.*;
 
