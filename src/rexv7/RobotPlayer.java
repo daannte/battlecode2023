@@ -1,4 +1,4 @@
-package coltonbettercarriersv3;
+package rexv7;
 
 import battlecode.common.*;
 
