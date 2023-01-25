@@ -1,10 +1,11 @@
-package coltonplayer;
+package coltonbettercarriers;
 
 import battlecode.common.*;
 
-import java.awt.*;
-import java.lang.reflect.Array;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Random;
 
 /**
  * RobotPlayer is the class that describes your main robot strategy.
@@ -367,7 +368,7 @@ public strictfp class RobotPlayer {
         // System.out.println(middlePos);
         MapLocation me = rc.getLocation();
 
-        if (turnCount == 1) {
+        if (turnCount == 2) {
             // guaranteed to be able to read this on turn 1 btw
             middlePos = new MapLocation((int) Math.round( (double) rc.getMapWidth() / 2), (int) Math.round( (double) rc.getMapHeight() / 2));
             amountOfHqsInThisGame = rc.readSharedArray(numOfHqsIndex);
@@ -379,108 +380,108 @@ public strictfp class RobotPlayer {
                 break;
             }
         }
-        boolean dontMove = false;
 
-        if (rc.getAnchor() != null) {
-            carryingAnAnchor = true;
-        } else {
-            carryingAnAnchor = false;
-        }
-        
-        // If we can see a well, move towards it
-        if (carryingAnAnchor) {
-            for (int i = 0; i < 2; i++) {
-                // we will prob be double moving
-                scanIslands(rc);
-                if (islandLocation != null) {
-                    moveToThisLocation(rc, islandLocation);
-                } else {
-                    moveRandomly(rc);
-                }
-                islandLocation = null;
-                if(rc.canPlaceAnchor() && rc.senseTeamOccupyingIsland(rc.senseIsland(rc.getLocation())) == Team.NEUTRAL) {
-                    rc.placeAnchor();
-                    carryingAnAnchor = false;
-                    break;
-                }
+        for (int yeaboiiiiiii = 1; yeaboiiiiiii <= 2; yeaboiiiiiii++) {
+
+            boolean dontMove = false;
+
+            if (rc.getAnchor() != null) {
+                carryingAnAnchor = true;
+            } else {
+                carryingAnAnchor = false;
             }
-        } else {
-            int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
-            int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
 
-            if ((amountOfAdamantium + amountOfMana) < 40) {
-                // needa find a well
-                // rc.setIndicatorString("Tried to sense a well near me and move to it");
-                WellInfo[] wells = rc.senseNearbyWells();
-                if (wells.length > 0) {
-                    MapLocation closestWellLoc = wells[0].getMapLocation();
-                    WellInfo closestWell = wells[0];
-                    for (WellInfo well : wells) {
-                        if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWellLoc)) {
-                            closestWellLoc = well.getMapLocation();
-                            closestWell = well;
-                        }
-                    }
-                    if (me.isAdjacentTo(closestWellLoc)) {
-                        // if we are close enough to collect, we don't need to move closer, so don't move, and just collect
-                        dontMove = true;
-                        // Try to gather from squares around us.
-                        for (int dx = -1; dx <= 1; dx++) {
-                            for (int dy = -1; dy <= 1; dy++) {
-                                MapLocation wellLocation = new MapLocation(me.x + dx, me.y + dy);
-                                if (rc.canCollectResource(wellLocation, closestWell.getRate())) {
-                                    rc.collectResource(wellLocation, closestWell.getRate());
-                                    rc.setIndicatorString("Collecting, now have, AD:" +
-                                            rc.getResourceAmount(ResourceType.ADAMANTIUM) +
-                                            " MN: " + rc.getResourceAmount(ResourceType.MANA) +
-                                            " EX: " + rc.getResourceAmount(ResourceType.ELIXIR));
-                                }
-                            }
-                        }
+            // If we can see a well, move towards it
+            if (carryingAnAnchor) {
+                for (int i = 0; i < 2; i++) {
+                    // we will prob be double moving
+                    scanIslands(rc);
+                    if (islandLocation != null) {
+                        moveToThisLocation(rc, islandLocation);
                     } else {
-                        // if we aren't adjacent to the well, we can't collect, so move to it
-                        Direction dir = me.directionTo(closestWellLoc);
-                        if (rc.canMove(dir)) {
-                            rc.move(dir);
-                            rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir);
-                        }
-                        if (amountOfAdamantium + amountOfMana == 0) {
-                            //empty dudes can move a second time hehe
-                            Direction dir2 = me.directionTo(closestWellLoc);
-                            if (rc.canMove(dir2)) {
-                                rc.move(dir2);
-                                rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir2);
-                            }
-                        }
+                        moveRandomly(rc);
+                    }
+                    islandLocation = null;
+                    if (rc.canPlaceAnchor() && rc.senseTeamOccupyingIsland(rc.senseIsland(rc.getLocation())) == Team.NEUTRAL) {
+                        rc.placeAnchor();
+                        carryingAnAnchor = false;
+                        break;
                     }
                 }
             } else {
-                // we have max we can carry, go back to the (closest) hq and deposit!
-                // System.out.println(coordsOfOurHqs);
-                MapLocation hqPos = getTheClosestHq(rc);
 
-                Direction dirToHq = me.directionTo(hqPos);
-                if (rc.getLocation().isAdjacentTo(hqPos)) {
-                    for (ResourceType resource : ResourceType.values()) {
-                        // System.out.println("" + resource + "");
-                        if (rc.canTransferResource(hqPos, resource, rc.getResourceAmount(resource))) {
-                            rc.transferResource(hqPos, resource, rc.getResourceAmount(resource));
-                            rc.setIndicatorString("Transferred " + resource + " to " + hqPos);
+                int amountOfAdamantium = rc.getResourceAmount(ResourceType.ADAMANTIUM);
+                int amountOfMana = rc.getResourceAmount(ResourceType.MANA);
+
+                if ((amountOfAdamantium + amountOfMana) < 40) {
+                    // try to just do everything twice cuz yeah
+                    // needa find a well
+                    // rc.setIndicatorString("Tried to sense a well near me and move to it");
+                    WellInfo[] wells = rc.senseNearbyWells();
+                    if (wells.length > 0) {
+                        MapLocation closestWellLoc = wells[0].getMapLocation();
+                        WellInfo closestWell = wells[0];
+                        for (WellInfo well : wells) {
+                            if (me.distanceSquaredTo(well.getMapLocation()) < me.distanceSquaredTo(closestWellLoc)) {
+                                closestWellLoc = well.getMapLocation();
+                                closestWell = well;
+                            }
+                        }
+
+                        if (me.isAdjacentTo(closestWellLoc)) {
+                            // if we are close enough to collect, we don't need to move closer, so don't move, and just collect
+                            dontMove = true;
+                            // Try to gather from the well we are beside
+                            if (rc.isActionReady()) {
+                                if (rc.canCollectResource(closestWellLoc, closestWell.getRate())) {
+                                    rc.collectResource(closestWellLoc, closestWell.getRate());
+                                }
+                            }
+
+                        } else {
+                            // if we aren't adjacent to the well, we can't collect, so move to it
+                            Direction dir = me.directionTo(closestWellLoc);
+                            if (rc.isMovementReady() && rc.canMove(dir)) {
+                                rc.move(dir);
+                                rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir);
+                            }
+//                        if (amountOfAdamantium + amountOfMana == 0) {
+//                            //empty dudes can move a second time hehe
+//                            Direction dir2 = me.directionTo(closestWellLoc);
+//                            if (rc.canMove(dir2)) {
+//                                rc.move(dir2);
+//                                rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir2);
+//                            }
+//                        }
                         }
                     }
-                } else if (rc.canMove(dirToHq)) {
-                    rc.move(dirToHq);
-                    rc.setIndicatorString("Moving " + dirToHq + " to get to " + hqPos);
-                } else {
 
+                } else {
+                    // we have max we can carry, go back to the (closest) hq and deposit!
+                    // System.out.println(coordsOfOurHqs);
+                    MapLocation hqPos = getTheClosestHq(rc);
+
+                    Direction dirToHq = me.directionTo(hqPos);
+                    if (rc.getLocation().isAdjacentTo(hqPos)) {
+                        for (ResourceType resource : ResourceType.values()) {
+                            // System.out.println("" + resource + "");
+                            if (rc.canTransferResource(hqPos, resource, rc.getResourceAmount(resource))) {
+                                rc.transferResource(hqPos, resource, rc.getResourceAmount(resource));
+                                rc.setIndicatorString("Transferred " + resource + " to " + hqPos);
+                            }
+                        }
+                    } else if (rc.canMove(dirToHq)) {
+                        rc.move(dirToHq);
+                        rc.setIndicatorString("Moving " + dirToHq + " to get to " + hqPos);
+                    }
                 }
             }
-        }
-        // move randomly if we want to move but couldn't find a valid spot
-        if (rc.isMovementReady() && !dontMove) {
-            //System.out.println(rc.canMove(dir));
-            moveRandomly(rc);
-            //rc.setIndicatorString("Moving " + dir);
+            // move randomly if we want to move but couldn't find a valid spot
+            if (rc.isMovementReady() && !dontMove) {
+                //System.out.println(rc.canMove(dir));
+                moveRandomly(rc);
+                //rc.setIndicatorString("Moving " + dir);
+            }
         }
     }
 
