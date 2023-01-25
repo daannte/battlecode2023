@@ -440,113 +440,13 @@ public strictfp class RobotPlayer {
                     } else {
                         // if we aren't adjacent to the well, we can't collect, so move to it
                         Direction dir = me.directionTo(closestWellLoc);
-                        if (rc.canMove(dir)) {
-                            rc.move(dir);
-                            rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir);
-                        }
-                        else if (me.x < middlePos.x) {
-                            if (me.y < middlePos.y) {
-                                if (rc.canMove(Direction.EAST)) {
-                                    rc.move(Direction.EAST);
-                                } else if (rc.canMove(Direction.SOUTH)) {
-                                    rc.move(Direction.SOUTH);
-                                } else if (rc.canMove(Direction.WEST)) {
-                                    rc.move(Direction.WEST);
-                                } else if (rc.canMove(Direction.NORTH)) {
-                                    rc.move(Direction.NORTH);
-                                }
-                            } else {
-                                if (rc.canMove(Direction.EAST)) {
-                                    rc.move(Direction.EAST);
-                                } else if (rc.canMove(Direction.NORTH)) {
-                                    rc.move(Direction.SOUTH);
-                                } else if (rc.canMove(Direction.WEST)) {
-                                    rc.move(Direction.WEST);
-                                } else if (rc.canMove(Direction.SOUTH)) {
-                                    rc.move(Direction.SOUTH);
-                                }
-                            }
-                        }
-                        else {
-                            if (me.y < middlePos.y) {
-                                if (rc.canMove(Direction.WEST)) {
-                                    rc.move(Direction.WEST);
-                                } else if (rc.canMove(Direction.SOUTH)) {
-                                    rc.move(Direction.SOUTH);
-                                } else if (rc.canMove(Direction.EAST)) {
-                                    rc.move(Direction.EAST);
-                                } else if (rc.canMove(Direction.NORTH)) {
-                                    rc.move(Direction.NORTH);
-                                }
-                            } else {
-                                if (rc.canMove(Direction.WEST)) {
-                                    rc.move(Direction.WEST);
-                                } else if (rc.canMove(Direction.NORTH)) {
-                                    rc.move(Direction.SOUTH);
-                                } else if (rc.canMove(Direction.EAST)) {
-                                    rc.move(Direction.EAST);
-                                } else if (rc.canMove(Direction.SOUTH)) {
-                                    rc.move(Direction.SOUTH);
-                                }
-                            }
-                        }
+                        pathFind(rc, dir, me);
 
                         if (amountOfAdamantium + amountOfMana == 0) {
                             //empty dudes can move a second time hehe
                             Direction dir2 = me.directionTo(closestWellLoc);
-                            if (rc.canMove(dir2)) {
-                                rc.move(dir2);
-                                rc.setIndicatorString("Closest well at " + closestWellLoc + " , im omw by moving " + dir2);
-                            }
-                            else if (me.x < middlePos.x) {
-                                if (me.y < middlePos.y) {
-                                    if (rc.canMove(Direction.EAST)) {
-                                        rc.move(Direction.EAST);
-                                    } else if (rc.canMove(Direction.SOUTH)) {
-                                        rc.move(Direction.SOUTH);
-                                    } else if (rc.canMove(Direction.WEST)) {
-                                        rc.move(Direction.WEST);
-                                    } else if (rc.canMove(Direction.NORTH)) {
-                                        rc.move(Direction.NORTH);
-                                    }
-                                } else {
-                                    if (rc.canMove(Direction.EAST)) {
-                                        rc.move(Direction.EAST);
-                                    } else if (rc.canMove(Direction.NORTH)) {
-                                        rc.move(Direction.SOUTH);
-                                    } else if (rc.canMove(Direction.WEST)) {
-                                        rc.move(Direction.WEST);
-                                    } else if (rc.canMove(Direction.SOUTH)) {
-                                        rc.move(Direction.SOUTH);
-                                    }
-                                }
-                            }
-                            else {
-                                if (me.y < middlePos.y) {
-                                    if (rc.canMove(Direction.WEST)) {
-                                        rc.move(Direction.WEST);
-                                    } else if (rc.canMove(Direction.SOUTH)) {
-                                        rc.move(Direction.SOUTH);
-                                    } else if (rc.canMove(Direction.EAST)) {
-                                        rc.move(Direction.EAST);
-                                    } else if (rc.canMove(Direction.NORTH)) {
-                                        rc.move(Direction.NORTH);
-                                    }
-                                } else {
-                                    if (rc.canMove(Direction.WEST)) {
-                                        rc.move(Direction.WEST);
-                                    } else if (rc.canMove(Direction.NORTH)) {
-                                        rc.move(Direction.SOUTH);
-                                    } else if (rc.canMove(Direction.EAST)) {
-                                        rc.move(Direction.EAST);
-                                    } else if (rc.canMove(Direction.SOUTH)) {
-                                        rc.move(Direction.SOUTH);
-                                    }
-                                }
-                            }
+                            pathFind(rc, dir2, me);
                         }
-
-
                     }
                 }
             } else {
@@ -566,51 +466,8 @@ public strictfp class RobotPlayer {
                 } else if (rc.canMove(dirToHq)) {
                     rc.move(dirToHq);
                     rc.setIndicatorString("Moving " + dirToHq + " to get to " + hqPos);
-                } else if (me.x < middlePos.x) {
-                    if (me.y < middlePos.y) {
-                        if (rc.canMove(Direction.EAST)) {
-                            rc.move(Direction.EAST);
-                        } else if (rc.canMove(Direction.SOUTH)) {
-                            rc.move(Direction.SOUTH);
-                        } else if (rc.canMove(Direction.WEST)) {
-                            rc.move(Direction.WEST);
-                        } else if (rc.canMove(Direction.NORTH)) {
-                            rc.move(Direction.NORTH);
-                        }
-                    } else {
-                        if (rc.canMove(Direction.EAST)) {
-                            rc.move(Direction.EAST);
-                        } else if (rc.canMove(Direction.NORTH)) {
-                            rc.move(Direction.SOUTH);
-                        } else if (rc.canMove(Direction.WEST)) {
-                            rc.move(Direction.WEST);
-                        } else if (rc.canMove(Direction.SOUTH)) {
-                            rc.move(Direction.SOUTH);
-                        }
-                    }
-                }
-                else {
-                    if (me.y < middlePos.y) {
-                        if (rc.canMove(Direction.WEST)) {
-                            rc.move(Direction.WEST);
-                        } else if (rc.canMove(Direction.SOUTH)) {
-                            rc.move(Direction.SOUTH);
-                        } else if (rc.canMove(Direction.EAST)) {
-                            rc.move(Direction.EAST);
-                        } else if (rc.canMove(Direction.NORTH)) {
-                            rc.move(Direction.NORTH);
-                        }
-                    } else {
-                        if (rc.canMove(Direction.WEST)) {
-                            rc.move(Direction.WEST);
-                        } else if (rc.canMove(Direction.NORTH)) {
-                            rc.move(Direction.SOUTH);
-                        } else if (rc.canMove(Direction.EAST)) {
-                            rc.move(Direction.EAST);
-                        } else if (rc.canMove(Direction.SOUTH)) {
-                            rc.move(Direction.SOUTH);
-                        }
-                    }
+                } else {
+                    pathFind(rc, dirToHq, me);
                 }
             }
         }
@@ -1379,6 +1236,93 @@ public strictfp class RobotPlayer {
                     rc.writeSharedArray(hqOrNotIndex, booleanToInt(scoutResultFromPossibleHqLocation));
                     scoutReturningHome = false;
                     System.out.println("\ni wrote " + thisAttackersMapLocationTheyScouted + " to the array and now not returning home\n");
+                }
+            }
+        }
+    }
+
+    static void pathFind (RobotController rc, Direction dir, MapLocation me) throws GameActionException {
+        if (rc.canMove(dir)) {
+            rc.move(dir);
+            rc.setIndicatorString("I'm omw by moving " + dir);
+        }
+        else if (me.x < middlePos.x) {
+            if (me.y < middlePos.y) {
+                if (rc.canMove(Direction.EAST)) {
+                    rc.move(Direction.EAST);
+                } else if (rc.canMove(Direction.SOUTHEAST)) {
+                    rc.move(Direction.SOUTHEAST);
+                } else if (rc.canMove(Direction.SOUTH)) {
+                    rc.move(Direction.SOUTH);
+                } else if (rc.canMove(Direction.SOUTHWEST)) {
+                    rc.move(Direction.SOUTHWEST);
+                } else if (rc.canMove(Direction.WEST)) {
+                    rc.move(Direction.WEST);
+                } else if (rc.canMove(Direction.NORTHWEST)) {
+                    rc.move(Direction.NORTHWEST);
+                } else if (rc.canMove(Direction.NORTH)) {
+                    rc.move(Direction.NORTH);
+                } else if (rc.canMove(Direction.NORTHEAST)) {
+                    rc.move(Direction.NORTHEAST);
+                }
+
+                else {
+                    if (rc.canMove(Direction.EAST)) {
+                        rc.move(Direction.EAST);
+                    } else if (rc.canMove(Direction.NORTHEAST)) {
+                        rc.move(Direction.NORTHEAST);
+                    } else if (rc.canMove(Direction.NORTH)) {
+                        rc.move(Direction.NORTH);
+                    } else if (rc.canMove(Direction.NORTHWEST)) {
+                        rc.move(Direction.NORTHWEST);
+                    } else if (rc.canMove(Direction.WEST)) {
+                        rc.move(Direction.WEST);
+                    } else if (rc.canMove(Direction.SOUTHWEST)) {
+                        rc.move(Direction.SOUTHWEST);
+                    } else if (rc.canMove(Direction.SOUTH)) {
+                        rc.move(Direction.SOUTH);
+                    } else if (rc.canMove(Direction.SOUTHEAST)) {
+                        rc.move(Direction.SOUTHEAST);
+                    }
+                }
+            }
+        }
+        else {
+            if (me.y < middlePos.y) {
+                if (rc.canMove(Direction.WEST)) {
+                    rc.move(Direction.WEST);
+                } else if (rc.canMove(Direction.SOUTHWEST)) {
+                    rc.move(Direction.SOUTHWEST);
+                } else if (rc.canMove(Direction.SOUTH)) {
+                    rc.move(Direction.SOUTH);
+                } else if (rc.canMove(Direction.SOUTHEAST)) {
+                    rc.move(Direction.SOUTHEAST);
+                } else if (rc.canMove(Direction.EAST)) {
+                    rc.move(Direction.EAST);
+                } else if (rc.canMove(Direction.NORTHEAST)) {
+                    rc.move(Direction.NORTHEAST);
+                } else if (rc.canMove(Direction.NORTH)) {
+                    rc.move(Direction.NORTH);
+                } else if (rc.canMove(Direction.NORTHWEST)) {
+                    rc.move(Direction.NORTHWEST);
+                }
+            } else {
+                if (rc.canMove(Direction.WEST)) {
+                    rc.move(Direction.WEST);
+                } else if (rc.canMove(Direction.NORTHWEST)) {
+                    rc.move(Direction.NORTHWEST);
+                } else if (rc.canMove(Direction.NORTH)) {
+                    rc.move(Direction.NORTH);
+                } else if (rc.canMove(Direction.NORTHEAST)) {
+                    rc.move(Direction.NORTHEAST);
+                } else if (rc.canMove(Direction.EAST)) {
+                    rc.move(Direction.EAST);
+                } else if (rc.canMove(Direction.SOUTHEAST)) {
+                    rc.move(Direction.SOUTHEAST);
+                } else if (rc.canMove(Direction.SOUTH)) {
+                    rc.move(Direction.SOUTH);
+                } else if (rc.canMove(Direction.SOUTHWEST)) {
+                    rc.move(Direction.SOUTHWEST);
                 }
             }
         }
