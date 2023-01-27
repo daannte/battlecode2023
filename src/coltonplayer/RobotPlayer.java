@@ -642,7 +642,7 @@ public strictfp class RobotPlayer {
 
         //try attacking after moving
         if (rc.isActionReady()) {
-            attackerAttackAround(rc);
+            attackerAttackAroundAndClouds(rc);
         }
     }
 
@@ -1223,6 +1223,95 @@ public strictfp class RobotPlayer {
             }
         }
         return null;
+    }
+
+    static void attackerAttackAroundAndClouds(RobotController rc) throws GameActionException {
+        attackerAttacked = false;
+        int radius = rc.getType().actionRadiusSquared;
+        Team opponent = rc.getTeam().opponent();
+        RobotInfo[] enemies = rc.senseNearbyRobots(radius, opponent);
+        RobotInfo target = null;
+
+        if (enemies.length > 0) {
+            // the target is the random first in the array. Over each iteration, if another enemy in the array has
+            // qualities that make it higher priority to attack than current target, then switch the target
+
+            // get the first non-hq as our first possible target
+            for (RobotInfo enemy : enemies) {
+                if (enemy.getType() != RobotType.HEADQUARTERS) {
+                    target = enemy;
+                    break;
+                }
+            }
+
+            RobotType targetEnemyRobotType = null;
+            int targetEnemyHealth = 0;
+            int targetEnemyDistance = 0;
+
+            for (RobotInfo enemy: enemies) {
+                // we cannot attack a headquarters!!! So make sure we don't even consider them!!!
+                if (enemy.getType() != RobotType.HEADQUARTERS) {
+                    // target qualities
+                    targetEnemyRobotType = target.getType();
+                    targetEnemyHealth = target.getHealth();
+                    targetEnemyDistance = target.getLocation().distanceSquaredTo(rc.getLocation());
+
+                    // current enemy to check qualities
+                    RobotType checkerEnemyRobotType = enemy.getType();
+                    int checkerEnemyHealth = enemy.getHealth();
+                    int checkerEnemyDistance = enemy.getLocation().distanceSquaredTo(rc.getLocation());
+
+                    // System.out.println("loc: " + enemy.getLocation() + " health: " + checkerEnemyHealth + " distance: " + checkerEnemyDistance);
+
+                    // 1st priority: LAUNCHERS
+                    // if this enemy is a launcher, and the target is not a launcher, switch the target to this enemy
+                    if (checkerEnemyRobotType == RobotType.LAUNCHER && targetEnemyRobotType != RobotType.LAUNCHER) {
+                        target = enemy;
+                    }
+                    // 2nd priority: THE LEAST HEALTH
+                    // if this enemy has less health than the target, switch target to this enemy
+                    else if (checkerEnemyHealth < targetEnemyHealth){
+                        target = enemy;
+                    }
+                    // 3rd priority: THE CLOSEST
+                    // if this enemy is closer than the target, switch target to this enemy
+                    else if (checkerEnemyDistance < targetEnemyDistance) {
+                        target = enemy;
+                    }
+                }
+            }
+            if (target != null) {
+                rc.setIndicatorString("TARGET: " + targetEnemyRobotType + " AT " + target.getLocation() + " WITH HEALTH: " + targetEnemyHealth + " DISTANCE: " + targetEnemyDistance);
+            }
+        }
+        rc.setIndicatorString(String.valueOf(target));
+        if (target != null) {
+            if (rc.canAttack(target.getLocation())) {
+                rc.attack(target.getLocation());
+                attackerAttacked = true;
+            }
+        } else {
+            MapLocation[] cloudLocs = rc.senseNearbyCloudLocations(-1);
+            ArrayList<MapLocation> randomCloudLocs = new ArrayList<>(Arrays.asList(cloudLocs));
+            Collections.shuffle(randomCloudLocs);
+            rc.setIndicatorString(String.valueOf(randomCloudLocs.size()));
+            for (MapLocation cloudLoc : randomCloudLocs) {
+                if (rc.canAttack(cloudLoc)) {
+                    rc.attack(cloudLoc);
+                    attackerAttacked = true;
+                    rc.setIndicatorString("Attacked " + cloudLocs[0]);
+                }
+
+
+//                if (!(cloudLocs[0].equals(rc.getLocation()))) {
+//                    if (rc.canAttack(cloudLocs[0])) {
+//                        rc.attack(cloudLocs[0]);
+//                        attackerAttacked = true;
+//                        rc.setIndicatorString("Attacked " + cloudLocs[0]);
+//                    }
+//                }
+            }
+        }
     }
 
     static void moveOppositeDirection(RobotController rc, MapLocation moveAwayFrom) throws GameActionException {
