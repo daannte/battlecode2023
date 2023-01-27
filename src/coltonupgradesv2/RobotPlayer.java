@@ -363,12 +363,17 @@ public strictfp class RobotPlayer {
 
         // if the hq sees an enemy robot (that's not a carrier), tell the attackers to come and merk it
         RobotInfo[] robotsAroundUs = rc.senseNearbyRobots(-1, rc.getTeam().opponent());
+        boolean changedTargets = false;
         int thisHqsSpotToWrite = comeKillThisDudeAtHq1Index + iAmThisHqToActThisRound - 1;
+        MapLocation enemyHqIsCurrentlyGettingAttackersToAttackThisLoc = intToLocation(rc, rc.readSharedArray(thisHqsSpotToWrite));
         for (RobotInfo enemyRobot : robotsAroundUs) {
             if (enemyRobot.getType() != RobotType.CARRIER) {
                 MapLocation enemyLocation = enemyRobot.getLocation();
-                if (rc.readSharedArray(thisHqsSpotToWrite) == 0) {
-                    // if spot is open, write the dude's location to there for attackers to come and merk
+                if ((rc.readSharedArray(thisHqsSpotToWrite) == 0) || !(enemyLocation.equals(enemyHqIsCurrentlyGettingAttackersToAttackThisLoc))) {
+                    // if spot is open, or its a different target, write the new enemy to attack
+                    if (!(enemyLocation.equals(enemyHqIsCurrentlyGettingAttackersToAttackThisLoc))) {
+                        changedTargets = true;
+                    }
                     rc.writeSharedArray(thisHqsSpotToWrite, locationToInt(rc, enemyLocation));
                     break;
                 }
