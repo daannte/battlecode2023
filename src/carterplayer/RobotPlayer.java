@@ -52,6 +52,7 @@ public strictfp class RobotPlayer {
     static boolean weShouldBuildAnAnchor = false;
     static boolean carryingAnAnchor = false;
     static MapLocation islandLocation = null;
+    static ArrayList<MapLocation> visitedLocations = new ArrayList<MapLocation>();
 
     /**
      * KEEPING TRACK OF WHAT'S IN THE SHARED ARRAY
@@ -440,12 +441,12 @@ public strictfp class RobotPlayer {
                     } else {
                         // if we aren't adjacent to the well, we can't collect, so move to it
                         Direction dir = me.directionTo(closestWellLoc);
-                        pathFind(rc, dir, me);
+                        pathFind(rc, closestWellLoc);
 
                         if (amountOfAdamantium + amountOfMana == 0) {
                             //empty dudes can move a second time hehe
                             Direction dir2 = me.directionTo(closestWellLoc);
-                            pathFind(rc, dir2, me);
+                            pathFind(rc, closestWellLoc);
                         }
                     }
                 }
@@ -467,7 +468,7 @@ public strictfp class RobotPlayer {
                     rc.move(dirToHq);
                     rc.setIndicatorString("Moving " + dirToHq + " to get to " + hqPos);
                 } else {
-                    pathFind(rc, dirToHq, me);
+                    pathFind(rc, hqPos);
                 }
             }
         }
@@ -1241,88 +1242,23 @@ public strictfp class RobotPlayer {
         }
     }
 
-    static void pathFind (RobotController rc, Direction dir, MapLocation me) throws GameActionException {
-        if (rc.canMove(dir)) {
-            rc.move(dir);
-            rc.setIndicatorString("I'm omw by moving " + dir);
-        }
-        else if (me.x < middlePos.x) {
-            if (me.y < middlePos.y) {
-                if (rc.canMove(Direction.EAST)) {
-                    rc.move(Direction.EAST);
-                } else if (rc.canMove(Direction.SOUTHEAST)) {
-                    rc.move(Direction.SOUTHEAST);
-                } else if (rc.canMove(Direction.SOUTH)) {
-                    rc.move(Direction.SOUTH);
-                } else if (rc.canMove(Direction.SOUTHWEST)) {
-                    rc.move(Direction.SOUTHWEST);
-                } else if (rc.canMove(Direction.WEST)) {
-                    rc.move(Direction.WEST);
-                } else if (rc.canMove(Direction.NORTHWEST)) {
-                    rc.move(Direction.NORTHWEST);
-                } else if (rc.canMove(Direction.NORTH)) {
-                    rc.move(Direction.NORTH);
-                } else if (rc.canMove(Direction.NORTHEAST)) {
-                    rc.move(Direction.NORTHEAST);
-                }
-
-                else {
-                    if (rc.canMove(Direction.EAST)) {
-                        rc.move(Direction.EAST);
-                    } else if (rc.canMove(Direction.NORTHEAST)) {
-                        rc.move(Direction.NORTHEAST);
-                    } else if (rc.canMove(Direction.NORTH)) {
-                        rc.move(Direction.NORTH);
-                    } else if (rc.canMove(Direction.NORTHWEST)) {
-                        rc.move(Direction.NORTHWEST);
-                    } else if (rc.canMove(Direction.WEST)) {
-                        rc.move(Direction.WEST);
-                    } else if (rc.canMove(Direction.SOUTHWEST)) {
-                        rc.move(Direction.SOUTHWEST);
-                    } else if (rc.canMove(Direction.SOUTH)) {
-                        rc.move(Direction.SOUTH);
-                    } else if (rc.canMove(Direction.SOUTHEAST)) {
-                        rc.move(Direction.SOUTHEAST);
-                    }
-                }
-            }
-        }
-        else {
-            if (me.y < middlePos.y) {
-                if (rc.canMove(Direction.WEST)) {
-                    rc.move(Direction.WEST);
-                } else if (rc.canMove(Direction.SOUTHWEST)) {
-                    rc.move(Direction.SOUTHWEST);
-                } else if (rc.canMove(Direction.SOUTH)) {
-                    rc.move(Direction.SOUTH);
-                } else if (rc.canMove(Direction.SOUTHEAST)) {
-                    rc.move(Direction.SOUTHEAST);
-                } else if (rc.canMove(Direction.EAST)) {
-                    rc.move(Direction.EAST);
-                } else if (rc.canMove(Direction.NORTHEAST)) {
-                    rc.move(Direction.NORTHEAST);
-                } else if (rc.canMove(Direction.NORTH)) {
-                    rc.move(Direction.NORTH);
-                } else if (rc.canMove(Direction.NORTHWEST)) {
-                    rc.move(Direction.NORTHWEST);
-                }
-            } else {
-                if (rc.canMove(Direction.WEST)) {
-                    rc.move(Direction.WEST);
-                } else if (rc.canMove(Direction.NORTHWEST)) {
-                    rc.move(Direction.NORTHWEST);
-                } else if (rc.canMove(Direction.NORTH)) {
-                    rc.move(Direction.NORTH);
-                } else if (rc.canMove(Direction.NORTHEAST)) {
-                    rc.move(Direction.NORTHEAST);
-                } else if (rc.canMove(Direction.EAST)) {
-                    rc.move(Direction.EAST);
-                } else if (rc.canMove(Direction.SOUTHEAST)) {
-                    rc.move(Direction.SOUTHEAST);
-                } else if (rc.canMove(Direction.SOUTH)) {
-                    rc.move(Direction.SOUTH);
-                } else if (rc.canMove(Direction.SOUTHWEST)) {
-                    rc.move(Direction.SOUTHWEST);
+    static void pathFind (RobotController rc, MapLocation location) throws GameActionException {
+        MapLocation me = rc.getLocation();
+        Direction dir = me.directionTo(location);
+        Direction[] dirs = new Direction[3];
+        dirs[0] = dir;
+        dirs[1] = dir.rotateRight();
+        dirs[2] = dir.rotateLeft();
+        visitedLocations.add(me);
+        for (int i = 0; i < dirs.length; i++) {
+            Direction move = dirs[i];
+            MapLocation nextMove = me.add(move);
+            if (!visitedLocations.contains(nextMove)) {
+                visitedLocations.add(nextMove);
+                rc.move(move);
+                if(rc.isMovementReady() && rc.canMove(move)) {
+                    rc.move(move);
+                    break;
                 }
             }
         }
