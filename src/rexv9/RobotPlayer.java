@@ -1,4 +1,4 @@
-package coltonplayer;
+package rexv9;
 
 import battlecode.common.*;
 
